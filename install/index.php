@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
         $dbName = trim((string) ($_POST['db_name'] ?? ''));
         $dbUser = trim((string) ($_POST['db_user'] ?? ''));
         $dbPass = (string) ($_POST['db_pass'] ?? '');
-        $siteName = trim((string) ($_POST['site_name'] ?? 'E-Learning CMS'));
+        $siteName = trim((string) ($_POST['site_name'] ?? 'Bloomin LMS'));
         $adminName = trim((string) ($_POST['admin_name'] ?? ''));
         $adminEmail = trim((string) ($_POST['admin_email'] ?? ''));
         $adminPassword = (string) ($_POST['admin_password'] ?? '');
@@ -118,12 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Installation &middot; E-Learning CMS</title>
+    <title>Installation &middot; Bloomin LMS</title>
     <link rel="stylesheet" href="/install/assets/install.css">
 </head>
 <body>
 <div class="install-box">
-    <h1>Installation de votre CMS e-learning</h1>
+    <h1>Installation de Bloomin LMS</h1>
 
     <?php foreach ($errors as $err): ?>
         <div class="alert"><?= Security::e($err) ?></div>
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
             <label>Mot de passe <input type="password" name="db_pass"></label>
 
             <h2>Site</h2>
-            <label>Nom du site <input type="text" name="site_name" value="<?= Security::e($_POST['site_name'] ?? 'E-Learning CMS') ?>" required></label>
+            <label>Nom du site <input type="text" name="site_name" value="<?= Security::e($_POST['site_name'] ?? 'Bloomin LMS') ?>" required></label>
 
             <h2>Compte administrateur</h2>
             <label>Nom <input type="text" name="admin_name" value="<?= Security::e($_POST['admin_name'] ?? '') ?>" required></label>
@@ -155,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
             <button class="btn" type="submit">Installer</button>
         </form>
     <?php endif; ?>
+    <p class="install-credit">&copy; <?= date('Y') ?> <a href="https://bloomin.agency" target="_blank" rel="noopener">Bloomin LMS</a></p>
 </div>
 </body>
 </html>

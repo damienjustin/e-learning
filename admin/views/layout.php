@@ -1,7 +1,7 @@
 <?php
 /** @var string $page */
 $page = $page ?? ($_GET['page'] ?? 'dashboard');
-$appName = Config::get('app')['name'] ?? 'E-Learning CMS';
+$appName = Config::get('app')['name'] ?? 'Bloomin LMS';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -26,6 +26,9 @@ $appName = Config::get('app')['name'] ?? 'E-Learning CMS';
             <a href="/">Voir le site</a>
             <a href="/logout">Déconnexion</a>
         </nav>
+        <div class="admin-credit">
+            &copy; <?= date('Y') ?> <a href="https://bloomin.agency" target="_blank" rel="noopener">Bloomin LMS</a>
+        </div>
     </aside>
     <main class="admin-content">
         <?php require __DIR__ . '/' . $view . '.php'; ?>

@@ -1,6 +1,6 @@
-# E-Learning CMS
+# Bloomin LMS
 
-CMS spécialisé e-learning, en PHP/JS/HTML/CSS natif, conçu comme un template installable (façon WordPress) : un cœur (`core/`), un système de thèmes (`themes/`), une administration (`admin/`), et un installeur web (`install/`).
+CMS spécialisé e-learning par [Bloomin](https://bloomin.agency), en PHP/JS/HTML/CSS natif, conçu comme un template installable (façon WordPress) : un cœur (`core/`), un système de thèmes (`themes/`), une administration (`admin/`), et un installeur web (`install/`).
 
 ## Fonctionnalités
 
