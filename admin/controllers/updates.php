@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (($_POST['do'] ?? '') === 'update') {
         try {
             $release = Updater::checkLatestRelease();
-            if (!Updater::isNewer($release['version']) || empty($release['zip_url'])) {
+            if (!Updater::isNewer($release['version'], $installedVersion) || empty($release['zip_url'])) {
                 $updateError = 'Aucune mise à jour à appliquer.';
             } else {
                 $updateResult = Updater::applyUpdate($release['zip_url'], $release['version'], $db);

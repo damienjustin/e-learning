@@ -17,7 +17,7 @@
 <?php if ($checkError): ?>
     <div class="alert alert-error">Impossible de vérifier les mises à jour : <?= Security::e($checkError) ?></div>
 <?php elseif ($release): ?>
-    <?php $hasUpdate = Updater::isNewer($release['version']); ?>
+    <?php $hasUpdate = Updater::isNewer($release['version'], $installedVersion); ?>
     <div class="admin-form">
         <?php if ($hasUpdate): ?>
             <p>Une nouvelle version est disponible : <strong><?= Security::e($release['version']) ?></strong></p>

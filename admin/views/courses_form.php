@@ -52,22 +52,95 @@
                 </div>
             </div>
 
-            <ul class="lesson-admin-list">
-                <?php foreach ($module['lessons'] as $lesson): ?>
-                    <li>
-                        📄 <a href="<?= adminUrl('lessons', ['action' => 'edit', 'id' => $lesson['id'], 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>"><?= Security::e($lesson['title']) ?></a>
-                    </li>
-                <?php endforeach; ?>
-                <?php foreach ($module['quizzes'] as $quiz): ?>
-                    <li>
-                        📝 <a href="<?= adminUrl('quizzes', ['action' => 'edit', 'id' => $quiz['id'], 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>">Quiz: <?= Security::e($quiz['title']) ?></a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <?php if ($module['lessons']): ?>
+                <div class="reorder-list" data-reorder data-module-id="<?= (int) $module['id'] ?>" data-kind="lessons">
+                    <?php foreach ($module['lessons'] as $lesson): ?>
+                        <div class="reorder-item" draggable="true" data-id="<?= (int) $lesson['id'] ?>">
+                            <span class="block-handle">⠿</span>
+                            📄 <a href="<?= adminUrl('lessons', ['action' => 'edit', 'id' => $lesson['id'], 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>"><?= Security::e($lesson['title']) ?></a>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+            <?php if ($module['quizzes']): ?>
+                <div class="reorder-list" data-reorder data-module-id="<?= (int) $module['id'] ?>" data-kind="quizzes">
+                    <?php foreach ($module['quizzes'] as $quiz): ?>
+                        <div class="reorder-item" draggable="true" data-id="<?= (int) $quiz['id'] ?>">
+                            <span class="block-handle">⠿</span>
+                            📝 <a href="<?= adminUrl('quizzes', ['action' => 'edit', 'id' => $quiz['id'], 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>">Quiz: <?= Security::e($quiz['title']) ?></a>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
             <a class="btn-link" href="<?= adminUrl('lessons', ['action' => 'create', 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>">+ Leçon</a>
             <a class="btn-link" href="<?= adminUrl('quizzes', ['action' => 'create', 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>">+ Quiz</a>
         </div>
     <?php endforeach; ?>
+
+    <?php if ($modules): ?>
+        <script>
+        (function () {
+            var csrfToken = <?= json_encode(Security::csrfToken()) ?>;
+            var reorderUrl = <?= json_encode(adminUrl('modules', ['action' => 'reorder', 'course_id' => $course['id']])) ?>;
+
+            document.querySelectorAll('[data-reorder]').forEach(function (list) {
+                var dragId = null;
+
+                function order() {
+                    return Array.from(list.querySelectorAll('.reorder-item')).map(function (el) {
+                        return el.dataset.id;
+                    });
+                }
+
+                function save() {
+                    var body = new URLSearchParams();
+                    body.set('_csrf', csrfToken);
+                    body.set('module_id', list.dataset.moduleId);
+                    body.set('kind', list.dataset.kind);
+                    body.set('order', JSON.stringify(order()));
+                    fetch(reorderUrl, { method: 'POST', body: body, headers: { 'X-Requested-With': 'fetch' } });
+                }
+
+                list.addEventListener('dragstart', function (e) {
+                    var item = e.target.closest('.reorder-item');
+                    if (!item) return;
+                    dragId = item.dataset.id;
+                    item.classList.add('is-dragging');
+                });
+                list.addEventListener('dragend', function (e) {
+                    var item = e.target.closest('.reorder-item');
+                    if (item) item.classList.remove('is-dragging');
+                    list.querySelectorAll('.reorder-item').forEach(function (el) {
+                        el.classList.remove('drop-before', 'drop-after');
+                    });
+                });
+                list.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    var item = e.target.closest('.reorder-item');
+                    if (!item || dragId === null) return;
+                    list.querySelectorAll('.reorder-item').forEach(function (el) {
+                        el.classList.remove('drop-before', 'drop-after');
+                    });
+                    var rect = item.getBoundingClientRect();
+                    var before = (e.clientY - rect.top) < rect.height / 2;
+                    item.classList.add(before ? 'drop-before' : 'drop-after');
+                });
+                list.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    var item = e.target.closest('.reorder-item');
+                    if (!item || dragId === null) return;
+                    var dragged = list.querySelector('.reorder-item[data-id="' + dragId + '"]');
+                    if (!dragged || dragged === item) return;
+                    var rect = item.getBoundingClientRect();
+                    var before = (e.clientY - rect.top) < rect.height / 2;
+                    list.insertBefore(dragged, before ? item : item.nextSibling);
+                    dragId = null;
+                    save();
+                });
+            });
+        })();
+        </script>
+    <?php endif; ?>
 <?php else: ?>
     <p class="muted">Enregistrez le cours pour pouvoir ajouter des modules et des leçons.</p>
 <?php endif; ?>

@@ -2,13 +2,17 @@
 
 /**
  * Block-based content builder (paragraph/heading/image/video/quote/list/
- * code/divider/button), used by both course descriptions and lesson
- * content. Blocks are stored as JSON and only ever rendered through
- * render(), so user input never reaches the page as raw HTML.
+ * code/divider/button/table/file/accordion/embed/spacer), used by course
+ * descriptions, module descriptions and lesson content. Blocks are stored
+ * as JSON and only ever rendered through render(), so user input never
+ * reaches the page as raw HTML.
  */
 final class Blocks
 {
-    private const TYPES = ['paragraph', 'heading', 'image', 'video', 'quote', 'list', 'code', 'divider', 'button'];
+    private const TYPES = [
+        'paragraph', 'heading', 'image', 'video', 'quote', 'list', 'code',
+        'divider', 'button', 'table', 'file', 'accordion', 'embed', 'spacer',
+    ];
 
     public static function decode(?string $json): array
     {
@@ -65,6 +69,34 @@ final class Blocks
                     'url' => trim((string) ($data['url'] ?? '')),
                 ]],
                 'divider' => ['type' => $type, 'data' => []],
+                'spacer' => ['type' => $type, 'data' => [
+                    'height' => max(4, min(200, (int) ($data['height'] ?? 32))),
+                ]],
+                'table' => ['type' => $type, 'data' => [
+                    'rows' => array_values(array_map(
+                        fn ($row) => array_values(array_map(
+                            fn ($cell) => trim((string) $cell),
+                            is_array($row) ? $row : []
+                        )),
+                        is_array($data['rows'] ?? null) ? $data['rows'] : []
+                    )),
+                ]],
+                'file' => ['type' => $type, 'data' => [
+                    'url' => trim((string) ($data['url'] ?? '')),
+                    'label' => trim((string) ($data['label'] ?? '')),
+                ]],
+                'accordion' => ['type' => $type, 'data' => [
+                    'items' => array_values(array_map(
+                        fn ($item) => [
+                            'title' => trim((string) ($item['title'] ?? '')),
+                            'content' => trim((string) ($item['content'] ?? '')),
+                        ],
+                        is_array($data['items'] ?? null) ? $data['items'] : []
+                    )),
+                ]],
+                'embed' => ['type' => $type, 'data' => [
+                    'url' => trim((string) ($data['url'] ?? '')),
+                ]],
                 default => null,
             };
         }
@@ -87,6 +119,11 @@ final class Blocks
                 'code' => '<pre><code>' . Security::e($data['code'] ?? '') . '</code></pre>',
                 'button' => self::renderButton($data),
                 'divider' => '<hr>',
+                'spacer' => '<div class="block-spacer" style="height:' . (int) ($data['height'] ?? 32) . 'px"></div>',
+                'table' => self::renderTable($data),
+                'file' => self::renderFile($data),
+                'accordion' => self::renderAccordion($data),
+                'embed' => self::renderEmbed($data),
                 default => '',
             };
         }
@@ -143,5 +180,57 @@ final class Blocks
             return '';
         }
         return '<p><a class="block-button" href="' . Security::e($url) . '">' . Security::e($label) . '</a></p>';
+    }
+
+    private static function renderTable(array $data): string
+    {
+        $rows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
+        if (!$rows) {
+            return '';
+        }
+        $html = '<table class="block-table"><tbody>';
+        foreach ($rows as $i => $row) {
+            $cellTag = $i === 0 ? 'th' : 'td';
+            $html .= '<tr>';
+            foreach ($row as $cell) {
+                $html .= "<{$cellTag}>" . Security::e($cell) . "</{$cellTag}>";
+            }
+            $html .= '</tr>';
+        }
+        return $html . '</tbody></table>';
+    }
+
+    private static function renderFile(array $data): string
+    {
+        $url = trim((string) ($data['url'] ?? ''));
+        $label = trim((string) ($data['label'] ?? '')) ?: 'Télécharger le fichier';
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return '';
+        }
+        return '<p><a class="block-file" href="' . Security::e($url) . '" download>📎 ' . Security::e($label) . '</a></p>';
+    }
+
+    private static function renderAccordion(array $data): string
+    {
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+        $items = array_filter($items, fn ($i) => trim((string) ($i['title'] ?? '')) !== '');
+        if (!$items) {
+            return '';
+        }
+        $html = '<div class="block-accordion">';
+        foreach ($items as $item) {
+            $html .= '<details><summary>' . Security::e($item['title'] ?? '') . '</summary><div>'
+                . nl2br(Security::e($item['content'] ?? '')) . '</div></details>';
+        }
+        return $html . '</div>';
+    }
+
+    private static function renderEmbed(array $data): string
+    {
+        $url = trim((string) ($data['url'] ?? ''));
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return '';
+        }
+        return '<div class="block-embed"><iframe src="' . Security::e($url) . '" loading="lazy" frameborder="0"></iframe></div>';
     }
 }

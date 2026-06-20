@@ -13,6 +13,12 @@
     <label>Position (ordre d'affichage)
         <input type="number" name="position" value="<?= (int) $module['position'] ?>">
     </label>
+    <label>Description du module</label>
+    <?php
+        $builderName = 'description_blocks';
+        $builderBlocksJson = $module['description_blocks'] ?? '[]';
+        require __DIR__ . '/partials/block_builder.php';
+    ?>
     <button class="btn" type="submit">Enregistrer</button>
     <a class="btn-secondary" href="<?= adminUrl('courses', ['action' => 'edit', 'id' => $course['id']]) ?>">Annuler</a>
 </form>

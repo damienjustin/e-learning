@@ -1,0 +1,1 @@
+ALTER TABLE modules ADD COLUMN description_blocks LONGTEXT DEFAULT NULL AFTER title;

@@ -63,9 +63,9 @@ final class Updater
         ];
     }
 
-    public static function isNewer(string $remoteVersion): bool
+    public static function isNewer(string $remoteVersion, string $installedVersion): bool
     {
-        return version_compare($remoteVersion, Version::CURRENT, '>');
+        return version_compare($remoteVersion, $installedVersion, '>');
     }
 
     /**
