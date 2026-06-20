@@ -1,6 +1,6 @@
 ALTER TABLE courses ADD COLUMN visibility ENUM('public','restricted') NOT NULL DEFAULT 'public' AFTER status;
 
-CREATE TABLE IF NOT EXISTS groups (
+CREATE TABLE IF NOT EXISTS member_groups (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS group_members (
     group_id INT UNSIGNED NOT NULL,
     user_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (group_id, user_id),
-    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES member_groups(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS course_access (
     group_id INT UNSIGNED DEFAULT NULL,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+    FOREIGN KEY (group_id) REFERENCES member_groups(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS media (
