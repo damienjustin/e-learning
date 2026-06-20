@@ -212,6 +212,20 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('[data-builder]').forEach((root) => new Builder(root));
+        document.querySelectorAll('[data-builder]').forEach((root) => {
+            if (!root.dataset.builderInit) {
+                root.dataset.builderInit = '1';
+                new Builder(root);
+            }
+        });
     });
+
+    window.BlockBuilderLib = {
+        init(root) {
+            if (root && !root.dataset.builderInit) {
+                root.dataset.builderInit = '1';
+                new Builder(root);
+            }
+        },
+    };
 })();
