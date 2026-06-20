@@ -3,6 +3,12 @@
     <a class="btn" href="<?= adminUrl('users', ['action' => 'create']) ?>">+ Nouvel utilisateur</a>
 </div>
 
+<form method="get" class="admin-filters">
+    <input type="hidden" name="page" value="users">
+    <input type="text" name="q" placeholder="Rechercher par nom ou email..." value="<?= Security::e($search) ?>">
+    <button class="btn-secondary" type="submit">Rechercher</button>
+</form>
+
 <table class="admin-table">
     <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th></th></tr></thead>
     <tbody>

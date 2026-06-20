@@ -59,7 +59,10 @@
                     <input type="text" data-field="text" placeholder="Texte du titre" value="${escapeAttr(d.text || '')}">`;
             case 'image':
                 return `
-                    <input type="url" data-field="url" placeholder="URL de l'image" value="${escapeAttr(d.url || '')}">
+                    <div class="block-url-row">
+                        <input type="url" data-field="url" placeholder="URL de l'image" value="${escapeAttr(d.url || '')}">
+                        <button type="button" class="btn-secondary btn-small" data-action="pick-media" data-field="url">Bibliothèque</button>
+                    </div>
                     <input type="text" data-field="alt" placeholder="Texte alternatif" value="${escapeAttr(d.alt || '')}">
                     <input type="text" data-field="caption" placeholder="Légende (optionnel)" value="${escapeAttr(d.caption || '')}">`;
             case 'video':
@@ -100,7 +103,10 @@
             }
             case 'file':
                 return `
-                    <input type="url" data-field="url" placeholder="URL du fichier" value="${escapeAttr(d.url || '')}">
+                    <div class="block-url-row">
+                        <input type="url" data-field="url" placeholder="URL du fichier" value="${escapeAttr(d.url || '')}">
+                        <button type="button" class="btn-secondary btn-small" data-action="pick-media" data-field="url">Bibliothèque</button>
+                    </div>
                     <input type="text" data-field="label" placeholder="Libellé (ex: Télécharger le PDF)" value="${escapeAttr(d.label || '')}">`;
             case 'accordion': {
                 const items = d.items && d.items.length ? d.items : [{ title: '', content: '' }];
@@ -361,6 +367,50 @@
             }
         }
 
+        openMediaPicker(onPick) {
+            const overlay = document.createElement('div');
+            overlay.className = 'block-media-modal-overlay';
+            overlay.innerHTML = `
+                <div class="block-media-modal">
+                    <div class="block-media-modal-head">
+                        <strong>Choisir un média</strong>
+                        <button type="button" class="btn-icon" data-action="close-media-modal">&times;</button>
+                    </div>
+                    <div class="block-media-modal-grid"><p class="muted">Chargement...</p></div>
+                </div>`;
+            document.body.appendChild(overlay);
+
+            const close = () => overlay.remove();
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay || e.target.closest('[data-action="close-media-modal"]')) close();
+            });
+
+            fetch('/admin/?page=media&action=list')
+                .then((r) => r.json())
+                .then((items) => {
+                    const grid = overlay.querySelector('.block-media-modal-grid');
+                    if (!items.length) {
+                        grid.innerHTML = '<p class="muted">Aucun média. Ajoutez-en depuis la page Médias.</p>';
+                        return;
+                    }
+                    grid.innerHTML = items.map((item) => `
+                        <button type="button" class="block-media-modal-item" data-url="${escapeAttr(item.url)}">
+                            ${item.isImage ? `<img src="${escapeAttr(item.url)}" alt="">` : '<div class="media-file-icon">📄</div>'}
+                            <span>${escapeHtml(item.name)}</span>
+                        </button>
+                    `).join('');
+                    grid.addEventListener('click', (e) => {
+                        const btn = e.target.closest('[data-url]');
+                        if (!btn) return;
+                        onPick(btn.dataset.url);
+                        close();
+                    });
+                })
+                .catch(() => {
+                    overlay.querySelector('.block-media-modal-grid').innerHTML = '<p class="muted">Erreur de chargement.</p>';
+                });
+        }
+
         insertBlockAt(index, type) {
             this.blocks.splice(index, 0, { type, data: emptyData(type) });
             this.render();
@@ -383,10 +433,16 @@
                 const item = e.target.closest('.block-item');
                 if (!item) return;
                 const index = parseInt(item.dataset.index, 10);
-                const action = e.target.closest('[data-action]')?.dataset.action;
+                const actionBtn = e.target.closest('[data-action]');
+                const action = actionBtn?.dataset.action;
                 const block = this.blocks[index];
 
-                if (action === 'delete') {
+                if (action === 'pick-media') {
+                    this.openMediaPicker((url) => {
+                        block.data[actionBtn.dataset.field] = url;
+                        this.render();
+                    });
+                } else if (action === 'delete') {
                     this.blocks.splice(index, 1);
                     this.collapsed.delete(index);
                     this.render();

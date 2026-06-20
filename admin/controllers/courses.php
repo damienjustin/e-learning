@@ -212,6 +212,29 @@ switch ($action) {
         header('Location: ' . adminUrl('courses'));
         exit;
 
+    case 'bulk':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null)) {
+            $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
+            $bulkAction = (string) ($_POST['bulk_action'] ?? '');
+            if ($ids && in_array($bulkAction, ['publish', 'archive', 'draft', 'delete'], true)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $ownClause = $isAdmin ? '' : ' AND instructor_id = ?';
+                $params = $ids;
+                if (!$isAdmin) {
+                    $params[] = $userId;
+                }
+                if ($bulkAction === 'delete') {
+                    $db->prepare("DELETE FROM courses WHERE id IN ({$placeholders}){$ownClause}")->execute($params);
+                } else {
+                    $statusMap = ['publish' => 'published', 'archive' => 'archived', 'draft' => 'draft'];
+                    array_unshift($params, $statusMap[$bulkAction]);
+                    $db->prepare("UPDATE courses SET status = ? WHERE id IN ({$placeholders}){$ownClause}")->execute($params);
+                }
+            }
+        }
+        header('Location: ' . adminUrl('courses'));
+        exit;
+
     default:
         $search = trim((string) ($_GET['q'] ?? ''));
         $statusFilter = in_array($_GET['status'] ?? '', ['draft', 'published', 'archived'], true) ? $_GET['status'] : '';

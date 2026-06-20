@@ -15,6 +15,16 @@ $allowedMime = [
 ];
 
 switch ($action) {
+    case 'list':
+        header('Content-Type: application/json');
+        $items = $db->query('SELECT id, filename, original_name, mime FROM media ORDER BY created_at DESC')->fetchAll();
+        echo json_encode(array_map(fn ($i) => [
+            'url' => '/uploads/' . $i['filename'],
+            'name' => $i['original_name'],
+            'isImage' => str_starts_with($i['mime'], 'image/'),
+        ], $items));
+        exit;
+
     case 'upload':
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null) && !empty($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['file'];

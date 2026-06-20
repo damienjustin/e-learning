@@ -88,9 +88,18 @@ switch ($action) {
         exit;
 
     default:
-        $stmt = $db->query('SELECT g.*,
+        $search = trim((string) ($_GET['q'] ?? ''));
+        $sql = 'SELECT g.*,
             (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count,
             (SELECT COUNT(*) FROM course_access ca WHERE ca.group_id = g.id) AS course_count
-            FROM member_groups g ORDER BY g.name ASC');
-        render('groups_list', ['groups' => $stmt->fetchAll()]);
+            FROM member_groups g';
+        $params = [];
+        if ($search !== '') {
+            $sql .= ' WHERE g.name LIKE ?';
+            $params[] = '%' . $search . '%';
+        }
+        $sql .= ' ORDER BY g.name ASC';
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        render('groups_list', ['groups' => $stmt->fetchAll(), 'search' => $search]);
 }

@@ -85,6 +85,12 @@ switch ($action) {
         exit;
 
     default:
-        $stmt = $db->query('SELECT * FROM users ORDER BY created_at DESC');
-        render('users_list', ['users' => $stmt->fetchAll()]);
+        $search = trim((string) ($_GET['q'] ?? ''));
+        if ($search !== '') {
+            $stmt = $db->prepare('SELECT * FROM users WHERE name LIKE ? OR email LIKE ? ORDER BY created_at DESC');
+            $stmt->execute(['%' . $search . '%', '%' . $search . '%']);
+        } else {
+            $stmt = $db->query('SELECT * FROM users ORDER BY created_at DESC');
+        }
+        render('users_list', ['users' => $stmt->fetchAll(), 'search' => $search]);
 }
