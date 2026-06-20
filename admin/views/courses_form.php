@@ -4,7 +4,7 @@
     <div class="alert alert-error"><?= Security::e($err) ?></div>
 <?php endforeach; ?>
 
-<form method="post" class="admin-form">
+<form method="post" class="admin-form admin-form--wide">
     <?= Security::csrfField() ?>
     <label>Titre
         <input type="text" name="title" value="<?= Security::e($course['title']) ?>" required>
