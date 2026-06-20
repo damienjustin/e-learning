@@ -29,7 +29,7 @@ final class Updater
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['User-Agent: e-learning-cms-updater', 'Accept: application/vnd.github+json'],
+            CURLOPT_HTTPHEADER => self::authHeaders(),
             CURLOPT_TIMEOUT => 15,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
@@ -40,6 +40,10 @@ final class Updater
 
         if ($httpCode === 404) {
             throw new RuntimeException('Aucune version publiée pour le moment sur le dépôt GitHub.');
+        }
+
+        if ($httpCode === 403) {
+            throw new RuntimeException('Limite de requêtes GitHub atteinte (réessayez plus tard, ou configurez un token dans config.php sous updates.github_token).');
         }
 
         if ($response === false || $httpCode !== 200) {
@@ -118,6 +122,16 @@ final class Updater
         return ['copied' => $copied, 'migrations' => $migrationsRan];
     }
 
+    private static function authHeaders(): array
+    {
+        $headers = ['User-Agent: e-learning-cms-updater', 'Accept: application/vnd.github+json'];
+        $token = Config::get('updates', [])['github_token'] ?? null;
+        if ($token) {
+            $headers[] = 'Authorization: Bearer ' . $token;
+        }
+        return $headers;
+    }
+
     private static function download(string $url, string $destination): void
     {
         $fp = fopen($destination, 'w');
@@ -125,7 +139,7 @@ final class Updater
         curl_setopt_array($ch, [
             CURLOPT_FILE => $fp,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTPHEADER => ['User-Agent: e-learning-cms-updater'],
+            CURLOPT_HTTPHEADER => self::authHeaders(),
             CURLOPT_TIMEOUT => 120,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);

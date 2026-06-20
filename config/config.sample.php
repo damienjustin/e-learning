@@ -20,4 +20,10 @@ return [
         // Generated automatically by the installer, used for CSRF/session signing.
         'key' => '',
     ],
+    'updates' => [
+        // Optional: a GitHub Personal Access Token (no scopes needed for a
+        // public repo) raises the API rate limit from 60 to 5000 req/hour.
+        // Generate one at https://github.com/settings/tokens
+        'github_token' => '',
+    ],
 ];
