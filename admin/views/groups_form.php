@@ -33,9 +33,15 @@
     <form method="post" action="<?= adminUrl('groups', ['action' => 'add_member']) ?>" class="inline-form">
         <?= Security::csrfField() ?>
         <input type="hidden" name="id" value="<?= (int) $group['id'] ?>">
-        <input type="email" name="user_email" placeholder="email@exemple.com" required>
+        <select name="user_id" required>
+            <option value="">Choisir un utilisateur inscrit...</option>
+            <?php foreach ($candidates as $c): ?>
+                <option value="<?= (int) $c['id'] ?>"><?= Security::e($c['name']) ?> (<?= Security::e($c['email']) ?>)</option>
+            <?php endforeach; ?>
+        </select>
         <button class="btn-secondary" type="submit">Ajouter le membre</button>
     </form>
+    <?php if (!$candidates): ?><p class="muted">Aucun utilisateur inscrit disponible à ajouter.</p><?php endif; ?>
 
     <h2>Cours accessibles via ce groupe</h2>
     <ul class="lesson-admin-list">
