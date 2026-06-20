@@ -3,6 +3,12 @@
     <a class="btn" href="<?= adminUrl('groups', ['action' => 'create']) ?>">+ Nouveau groupe</a>
 </div>
 
+<form method="get" class="admin-filters">
+    <input type="hidden" name="page" value="groups">
+    <input type="text" name="q" placeholder="Rechercher un groupe..." value="<?= Security::e($search) ?>">
+    <button class="btn-secondary" type="submit">Rechercher</button>
+</form>
+
 <table class="admin-table">
     <thead><tr><th>Nom</th><th>Membres</th><th>Cours liés</th><th></th></tr></thead>
     <tbody>
