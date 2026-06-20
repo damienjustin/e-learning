@@ -1,6 +1,6 @@
 <?php
 /** @var callable $content */
-$appName = Config::get('app')['name'] ?? 'E-Learning CMS';
+$appName = Config::get('app')['name'] ?? 'Bloomin LMS';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -33,7 +33,10 @@ $appName = Config::get('app')['name'] ?? 'E-Learning CMS';
     <?php $content(); ?>
 </main>
 <footer class="site-footer">
-    <div class="container">&copy; <?= date('Y') ?> <?= Security::e($appName) ?></div>
+    <div class="container">
+        &copy; <?= date('Y') ?> <?= Security::e($appName) ?> &middot;
+        Propulsé par <a href="https://bloomin.agency" target="_blank" rel="noopener">Bloomin LMS</a>
+    </div>
 </footer>
 <script src="/themes/default/assets/js/main.js"></script>
 </body>

@@ -13,7 +13,7 @@ return [
         'charset' => 'utf8mb4',
     ],
     'app' => [
-        'name' => 'E-Learning CMS',
+        'name' => 'Bloomin LMS',
         'url' => 'http://localhost',
         'theme' => 'default',
         'debug' => false,
