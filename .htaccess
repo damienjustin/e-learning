@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Block access to sensitive directories
+RewriteRule ^(config|core|includes|database)/ - [F,L]
+
+# Protect dotfiles and config sample
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Front controller
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/admin
+RewriteCond %{REQUEST_URI} !^/install
+RewriteRule ^(.*)$ index.php [QSA,L]

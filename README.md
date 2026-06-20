@@ -1,0 +1,50 @@
+# E-Learning CMS
+
+CMS spécialisé e-learning, en PHP/JS/HTML/CSS natif, conçu comme un template installable (façon WordPress) : un cœur (`core/`), un système de thèmes (`themes/`), une administration (`admin/`), et un installeur web (`install/`).
+
+## Fonctionnalités
+
+- Cours &rarr; Modules &rarr; Leçons (texte/vidéo) &rarr; Quiz (choix unique/multiple, score de réussite, tentatives limitées)
+- Comptes utilisateurs avec rôles : administrateur, formateur, étudiant
+- Inscription aux cours, suivi de progression des leçons, tentatives de quiz historisées
+- Thème personnalisable à 100% : dupliquez `themes/default` pour créer un nouveau thème, puis activez-le dans Administration &rarr; Réglages
+- Système de hooks (`core/Hooks.php`) pour étendre le CMS sans toucher au cœur
+
+## Sécurité intégrée
+
+- Toutes les requêtes SQL utilisent des requêtes préparées PDO (pas de concaténation)
+- Mots de passe hashés avec `password_hash` (bcrypt/argon selon PHP), re-hash automatique
+- Protection CSRF sur tous les formulaires (jeton par session, vérifié via `hash_equals`)
+- Sessions sécurisées : cookies `HttpOnly`, `SameSite=Lax`, régénération périodique de l'ID de session, régénération à la connexion
+- Limitation des tentatives de connexion (anti brute-force, par IP + email)
+- En-têtes de sécurité HTTP (CSP, X-Frame-Options, X-Content-Type-Options, HSTS si HTTPS)
+- Accès direct aux dossiers `config/`, `core/`, `includes/`, `database/` bloqué via `.htaccess`
+- Contrôle d'accès par rôle sur chaque page d'administration et chaque action sensible
+
+## Installation
+
+1. Copiez l'ensemble du projet sur votre serveur (Apache + `mod_rewrite`, PHP 8.1+, MySQL/MariaDB)
+2. Donnez les droits d'écriture sur `config/` et `uploads/` au serveur web
+3. Rendez-vous sur `https://votre-site/install/` et suivez l'assistant :
+   - informations de connexion à la base de données (elle sera créée automatiquement)
+   - nom du site
+   - création du compte administrateur
+4. Une fois l'installation terminée, supprimez ou protégez le dossier `install/`
+5. Connectez-vous sur `/login` avec le compte administrateur créé
+
+## Structure
+
+```
+admin/        Interface d'administration (cours, utilisateurs, réglages)
+config/       Configuration (config.php généré par l'installeur, ignoré par git)
+core/         Classes du cœur (Database, Auth, Security, Hooks, Router, View, Config)
+database/     Schéma SQL
+includes/     Bootstrap + contrôleurs du site public
+install/      Assistant d'installation web
+themes/       Thèmes (le thème "default" est fourni, 100% personnalisable)
+uploads/      Fichiers uploadés (vidéos, documents de cours)
+```
+
+## Créer un nouveau thème
+
+Dupliquez `themes/default` sous `themes/mon-theme`, modifiez les fichiers PHP (`layout.php`, `home.php`, `course_show.php`, etc.) et les assets CSS/JS, puis activez-le depuis Administration &rarr; Réglages.
