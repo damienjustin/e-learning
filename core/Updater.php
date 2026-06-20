@@ -52,7 +52,7 @@ final class Updater
         }
 
         return [
-            'version' => ltrim($data['tag_name'], 'v'),
+            'version' => preg_replace('/^v/i', '', $data['tag_name']),
             'changelog' => $data['body'] ?? '',
             'zip_url' => $data['zipball_url'] ?? null,
             'published_at' => $data['published_at'] ?? null,
