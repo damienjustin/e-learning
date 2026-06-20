@@ -73,6 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
                         ->execute([$adminName, $adminEmail, password_hash($adminPassword, PASSWORD_DEFAULT), 'admin']);
                 }
 
+                // schema.sql already reflects every migration that existed at
+                // install time, so mark them applied to avoid re-running deltas later.
+                Migrator::markAllAsApplied($pdo);
+
+                $pdo->prepare('INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)')
+                    ->execute(['cms_version', Version::CURRENT]);
+
                 $config = [
                     'db' => [
                         'host' => $dbHost,
