@@ -9,12 +9,14 @@ require_once CMS_ROOT . '/includes/bootstrap.php';
 
 $configPath = CMS_ROOT . '/config/config.php';
 
-if (is_file($configPath)) {
+$step = (int) ($_GET['step'] ?? 1);
+
+if (is_file($configPath) && !($step === 3 && !empty($_SESSION['_install_just_completed']))) {
     http_response_code(403);
     exit('Le CMS est déjà installé. Supprimez config/config.php pour relancer l\'installation.');
 }
 
-$step = (int) ($_GET['step'] ?? 1);
+unset($_SESSION['_install_just_completed']);
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
@@ -93,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
                 if (file_put_contents($configPath, $php) === false) {
                     $errors[] = 'Impossible d\'écrire config/config.php. Vérifiez les droits du dossier config/.';
                 } else {
+                    $_SESSION['_install_just_completed'] = true;
                     header('Location: /install/?step=3');
                     exit;
                 }
