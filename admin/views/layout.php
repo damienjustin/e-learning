@@ -21,6 +21,7 @@ $appName = Config::get('app')['name'] ?? 'E-Learning CMS';
             <?php if (Auth::hasRole('admin')): ?>
                 <a href="<?= adminUrl('users') ?>" class="<?= $page === 'users' ? 'active' : '' ?>">Utilisateurs</a>
                 <a href="<?= adminUrl('settings') ?>" class="<?= $page === 'settings' ? 'active' : '' ?>">Réglages</a>
+                <a href="<?= adminUrl('updates') ?>" class="<?= $page === 'updates' ? 'active' : '' ?>">Mises à jour</a>
             <?php endif; ?>
             <a href="/">Voir le site</a>
             <a href="/logout">Déconnexion</a>
