@@ -33,20 +33,29 @@ final class Migrator
         }
     }
 
+    /**
+     * MySQL/MariaDB DDL statements (ALTER/CREATE TABLE) auto-commit even
+     * inside a transaction, so a migration that fails partway through can
+     * leave some of its statements already applied. Re-running it would
+     * then hit "already exists" errors forever, so those specific error
+     * codes are tolerated to let a migration finish applying its
+     * remaining (not-yet-applied) statements.
+     */
+    private const IGNORABLE_ERROR_CODES = ['42S21', '42S01'];
+
     private static function runFile(PDO $db, string $filename): void
     {
         $sql = file_get_contents(CMS_ROOT . '/database/migrations/' . $filename);
-        $db->beginTransaction();
-        try {
-            foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+        foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+            try {
                 $db->exec($statement);
+            } catch (PDOException $e) {
+                if (!in_array($e->getCode(), self::IGNORABLE_ERROR_CODES, true)) {
+                    throw $e;
+                }
             }
-            $db->prepare('INSERT INTO migrations (filename) VALUES (?)')->execute([$filename]);
-            $db->commit();
-        } catch (Throwable $e) {
-            $db->rollBack();
-            throw $e;
         }
+        $db->prepare('INSERT IGNORE INTO migrations (filename) VALUES (?)')->execute([$filename]);
     }
 
     private static function appliedFilenames(PDO $db): array
