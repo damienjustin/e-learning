@@ -6,7 +6,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('UTC');
 
-define('CMS_ROOT', dirname(__DIR__));
+if (!defined('CMS_ROOT')) {
+    define('CMS_ROOT', dirname(__DIR__));
+}
 
 spl_autoload_register(function (string $class): void {
     $path = CMS_ROOT . '/core/' . $class . '.php';
