@@ -1,4 +1,25 @@
-<h1><?= $course['id'] ? 'Modifier le cours' : 'Nouveau cours' ?></h1>
+<?php
+$crumbs = [
+    ['label' => 'Cours', 'url' => adminUrl('courses')],
+    ['label' => $course['id'] ? $course['title'] : 'Nouveau cours'],
+];
+require __DIR__ . '/partials/breadcrumb.php';
+?>
+<div class="page-head">
+    <h1><?= $course['id'] ? 'Modifier le cours' : 'Nouveau cours' ?></h1>
+    <?php if ($course['id']): ?>
+        <div>
+            <?php if ($course['status'] !== 'published'): ?>
+                <a class="btn-secondary" href="<?= adminUrl('courses', ['action' => 'preview', 'id' => $course['id']]) ?>" target="_blank">Aperçu</a>
+            <?php endif; ?>
+            <form method="post" action="<?= adminUrl('courses', ['action' => 'duplicate']) ?>" style="display:inline">
+                <?= Security::csrfField() ?>
+                <input type="hidden" name="id" value="<?= (int) $course['id'] ?>">
+                <button class="btn-secondary" type="submit">Dupliquer</button>
+            </form>
+        </div>
+    <?php endif; ?>
+</div>
 
 <?php foreach ($errors as $err): ?>
     <div class="alert alert-error"><?= Security::e($err) ?></div>
@@ -31,19 +52,82 @@
             <?php endforeach; ?>
         </select>
     </label>
+    <label>Accès
+        <select name="visibility">
+            <option value="public" <?= ($course['visibility'] ?? 'public') === 'public' ? 'selected' : '' ?>>Public (tous les inscrits)</option>
+            <option value="restricted" <?= ($course['visibility'] ?? 'public') === 'restricted' ? 'selected' : '' ?>>Restreint (groupes / utilisateurs)</option>
+        </select>
+    </label>
     <button class="btn" type="submit">Enregistrer</button>
 </form>
+
+<?php if ($course['id'] && ($course['visibility'] ?? 'public') === 'restricted'): ?>
+    <h2>Accès restreint</h2>
+    <p class="muted">Seuls les groupes et utilisateurs listés ci-dessous peuvent voir ce cours.</p>
+    <div class="module-block">
+        <strong>Groupes autorisés</strong>
+        <ul class="lesson-admin-list">
+            <?php foreach ($accessGroups as $g): ?>
+                <li>
+                    <?= Security::e($g['name']) ?>
+                    <form method="post" action="<?= adminUrl('courses', ['action' => 'revoke_access', 'id' => $course['id']]) ?>" style="display:inline">
+                        <?= Security::csrfField() ?>
+                        <input type="hidden" name="access_id" value="<?= (int) $g['access_id'] ?>">
+                        <button class="btn-link" type="submit">retirer</button>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+            <?php if (!$accessGroups): ?><li class="muted">Aucun groupe</li><?php endif; ?>
+        </ul>
+        <form method="post" action="<?= adminUrl('courses', ['action' => 'grant_access', 'id' => $course['id']]) ?>" class="inline-form">
+            <?= Security::csrfField() ?>
+            <select name="group_id">
+                <option value="">— Choisir un groupe —</option>
+                <?php foreach ($allGroups as $grp): ?>
+                    <option value="<?= (int) $grp['id'] ?>"><?= Security::e($grp['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button class="btn-secondary" type="submit">Ajouter le groupe</button>
+        </form>
+
+        <strong>Utilisateurs autorisés</strong>
+        <ul class="lesson-admin-list">
+            <?php foreach ($accessUsers as $u): ?>
+                <li>
+                    <?= Security::e($u['name']) ?> (<?= Security::e($u['email']) ?>)
+                    <form method="post" action="<?= adminUrl('courses', ['action' => 'revoke_access', 'id' => $course['id']]) ?>" style="display:inline">
+                        <?= Security::csrfField() ?>
+                        <input type="hidden" name="access_id" value="<?= (int) $u['access_id'] ?>">
+                        <button class="btn-link" type="submit">retirer</button>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+            <?php if (!$accessUsers): ?><li class="muted">Aucun utilisateur</li><?php endif; ?>
+        </ul>
+        <form method="post" action="<?= adminUrl('courses', ['action' => 'grant_access', 'id' => $course['id']]) ?>" class="inline-form">
+            <?= Security::csrfField() ?>
+            <input type="email" name="user_email" placeholder="email@exemple.com">
+            <button class="btn-secondary" type="submit">Ajouter l'utilisateur</button>
+        </form>
+    </div>
+<?php endif; ?>
 
 <?php if ($course['id']): ?>
     <h2>Modules &amp; leçons</h2>
     <a class="btn-secondary" href="<?= adminUrl('modules', ['action' => 'create', 'course_id' => $course['id']]) ?>">+ Ajouter un module</a>
 
+    <div class="reorder-list" data-reorder data-module-id="0" data-kind="modules">
     <?php foreach ($modules as $module): ?>
-        <div class="module-block">
+        <div class="module-block reorder-item" draggable="true" data-id="<?= (int) $module['id'] ?>">
             <div class="page-head">
-                <h3><?= Security::e($module['title']) ?></h3>
+                <h3><span class="block-handle">⠿</span> <?= Security::e($module['title']) ?></h3>
                 <div>
                     <a class="btn-secondary" href="<?= adminUrl('modules', ['action' => 'edit', 'id' => $module['id'], 'course_id' => $course['id']]) ?>">Modifier</a>
+                    <form method="post" action="<?= adminUrl('modules', ['action' => 'duplicate', 'course_id' => $course['id']]) ?>" style="display:inline">
+                        <?= Security::csrfField() ?>
+                        <input type="hidden" name="id" value="<?= (int) $module['id'] ?>">
+                        <button class="btn-secondary" type="submit">Dupliquer</button>
+                    </form>
                     <form method="post" action="<?= adminUrl('modules', ['action' => 'delete', 'course_id' => $course['id']]) ?>" style="display:inline" onsubmit="return confirm('Supprimer ce module et son contenu ?');">
                         <?= Security::csrfField() ?>
                         <input type="hidden" name="id" value="<?= (int) $module['id'] ?>">
@@ -58,6 +142,11 @@
                         <div class="reorder-item" draggable="true" data-id="<?= (int) $lesson['id'] ?>">
                             <span class="block-handle">⠿</span>
                             📄 <a href="<?= adminUrl('lessons', ['action' => 'edit', 'id' => $lesson['id'], 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>"><?= Security::e($lesson['title']) ?></a>
+                            <form method="post" action="<?= adminUrl('lessons', ['action' => 'duplicate', 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>" style="display:inline">
+                                <?= Security::csrfField() ?>
+                                <input type="hidden" name="id" value="<?= (int) $lesson['id'] ?>">
+                                <button class="btn-link" type="submit">dupliquer</button>
+                            </form>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -76,6 +165,7 @@
             <a class="btn-link" href="<?= adminUrl('quizzes', ['action' => 'create', 'module_id' => $module['id'], 'course_id' => $course['id']]) ?>">+ Quiz</a>
         </div>
     <?php endforeach; ?>
+    </div>
 
     <?php if ($modules): ?>
         <script>

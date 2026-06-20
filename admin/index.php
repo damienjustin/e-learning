@@ -21,7 +21,7 @@ function render(string $view, array $data = []): void
     require __DIR__ . '/views/layout.php';
 }
 
-$allowedPages = ['dashboard', 'courses', 'modules', 'lessons', 'quizzes', 'users', 'settings', 'updates'];
+$allowedPages = ['dashboard', 'courses', 'modules', 'lessons', 'quizzes', 'users', 'settings', 'updates', 'media'];
 if (!in_array($page, $allowedPages, true)) {
     $page = 'dashboard';
 }

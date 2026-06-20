@@ -4,14 +4,28 @@ declare(strict_types=1);
 
 $slug = (string) ($_GET['slug'] ?? '');
 
-$stmt = $db->prepare("SELECT c.*, u.name AS instructor_name FROM courses c
+$stmt = $db->prepare('SELECT c.*, u.name AS instructor_name FROM courses c
     JOIN users u ON u.id = c.instructor_id
-    WHERE c.slug = ? AND c.status = 'published' LIMIT 1");
+    WHERE c.slug = ? LIMIT 1');
 $stmt->execute([$slug]);
 $course = $stmt->fetch();
 
-if (!$course) {
+$isOwnerOrAdmin = $course && Auth::check() && (Auth::hasRole('admin') || (int) $course['instructor_id'] === Auth::id());
+
+if (!$course || ($course['status'] !== 'published' && !$isOwnerOrAdmin)) {
     notFound();
+}
+
+if ($course['visibility'] === 'restricted' && !$isOwnerOrAdmin) {
+    $hasAccess = false;
+    if (Auth::check()) {
+        $stmt = $db->prepare('SELECT 1 FROM course_access WHERE course_id = ? AND (user_id = ? OR group_id IN (SELECT group_id FROM group_members WHERE user_id = ?)) LIMIT 1');
+        $stmt->execute([$course['id'], Auth::id(), Auth::id()]);
+        $hasAccess = (bool) $stmt->fetch();
+    }
+    if (!$hasAccess) {
+        notFound();
+    }
 }
 
 $enrolled = false;

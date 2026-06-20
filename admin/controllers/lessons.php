@@ -87,6 +87,20 @@ switch ($action) {
         header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
         exit;
 
+    case 'duplicate':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null)) {
+            $id = (int) ($_POST['id'] ?? 0);
+            $stmt = $db->prepare('SELECT * FROM lessons WHERE id = ? AND module_id = ?');
+            $stmt->execute([$id, $moduleId]);
+            $src = $stmt->fetch();
+            if ($src) {
+                $db->prepare('INSERT INTO lessons (module_id, title, slug, content_type, content, content_blocks, video_url, position, duration_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([$moduleId, $src['title'] . ' (copie)', $src['slug'] . '-copie-' . time(), $src['content_type'], $src['content'], $src['content_blocks'], $src['video_url'], $src['position'], $src['duration_minutes']]);
+            }
+        }
+        header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
+        exit;
+
     default:
         header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
         exit;

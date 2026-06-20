@@ -7,16 +7,19 @@ Auth::requireLogin();
 $courseSlug = (string) ($_GET['course_slug'] ?? '');
 $lessonSlug = (string) ($_GET['lesson_slug'] ?? '');
 
-$stmt = $db->prepare("SELECT c.* FROM courses c WHERE c.slug = ? AND c.status = 'published' LIMIT 1");
+$stmt = $db->prepare('SELECT c.* FROM courses c WHERE c.slug = ? LIMIT 1');
 $stmt->execute([$courseSlug]);
 $course = $stmt->fetch();
-if (!$course) {
+
+$isOwnerOrAdmin = $course && (Auth::hasRole('admin') || (int) $course['instructor_id'] === Auth::id());
+
+if (!$course || ($course['status'] !== 'published' && !$isOwnerOrAdmin)) {
     notFound();
 }
 
 $stmt = $db->prepare('SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?');
 $stmt->execute([Auth::id(), $course['id']]);
-if (!$stmt->fetch() && !Auth::hasRole('admin', 'instructor')) {
+if (!$stmt->fetch() && !$isOwnerOrAdmin) {
     header('Location: /course/' . $course['slug']);
     exit;
 }
