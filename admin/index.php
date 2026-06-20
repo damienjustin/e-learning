@@ -21,13 +21,13 @@ function render(string $view, array $data = []): void
     require __DIR__ . '/views/layout.php';
 }
 
-$allowedPages = ['dashboard', 'courses', 'modules', 'lessons', 'quizzes', 'users', 'settings', 'updates', 'media'];
+$allowedPages = ['dashboard', 'courses', 'modules', 'lessons', 'quizzes', 'users', 'groups', 'settings', 'updates', 'media'];
 if (!in_array($page, $allowedPages, true)) {
     $page = 'dashboard';
 }
 
 // Only admins manage users, global settings and core updates.
-if (in_array($page, ['users', 'settings', 'updates'], true)) {
+if (in_array($page, ['users', 'groups', 'settings', 'updates'], true)) {
     Auth::requireRole('admin');
 }
 

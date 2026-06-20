@@ -21,6 +21,7 @@ $appName = Config::get('app')['name'] ?? 'Bloomin LMS';
             <a href="<?= adminUrl('media') ?>" class="<?= $page === 'media' ? 'active' : '' ?>">Médias</a>
             <?php if (Auth::hasRole('admin')): ?>
                 <a href="<?= adminUrl('users') ?>" class="<?= $page === 'users' ? 'active' : '' ?>">Utilisateurs</a>
+                <a href="<?= adminUrl('groups') ?>" class="<?= $page === 'groups' ? 'active' : '' ?>">Groupes</a>
                 <a href="<?= adminUrl('settings') ?>" class="<?= $page === 'settings' ? 'active' : '' ?>">Réglages</a>
                 <a href="<?= adminUrl('updates') ?>" class="<?= $page === 'updates' ? 'active' : '' ?>">Mises à jour</a>
             <?php endif; ?>
