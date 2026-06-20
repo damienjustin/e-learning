@@ -15,9 +15,12 @@
     <label>Résumé
         <textarea name="summary" rows="2"><?= Security::e($course['summary']) ?></textarea>
     </label>
-    <label>Description complète
-        <textarea name="description" rows="6"><?= Security::e($course['description']) ?></textarea>
-    </label>
+    <label>Description complète</label>
+    <?php
+        $builderName = 'description_blocks';
+        $builderBlocksJson = $course['description_blocks'] ?? '[]';
+        require __DIR__ . '/partials/block_builder.php';
+    ?>
     <label>Prix (&euro;)
         <input type="number" step="0.01" min="0" name="price" value="<?= Security::e((string) $course['price']) ?>">
     </label>

@@ -1,7 +1,12 @@
 <article>
     <h1><?= Security::e($course['title']) ?></h1>
     <p class="muted">Par <?= Security::e($course['instructor_name']) ?></p>
-    <p><?= nl2br(Security::e($course['description'])) ?></p>
+    <?php $descBlocks = Blocks::decode($course['description_blocks'] ?? null); ?>
+    <?php if ($descBlocks): ?>
+        <div class="prose"><?= Blocks::render($descBlocks) ?></div>
+    <?php else: ?>
+        <p><?= nl2br(Security::e($course['description'])) ?></p>
+    <?php endif; ?>
 
     <?php if (Auth::check() && !$enrolled): ?>
         <form method="post">

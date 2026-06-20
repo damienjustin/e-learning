@@ -8,7 +8,7 @@ $isAdmin = Auth::hasRole('admin');
 switch ($action) {
     case 'create':
     case 'edit':
-        $course = ['id' => null, 'title' => '', 'slug' => '', 'summary' => '', 'description' => '', 'price' => '0', 'status' => 'draft', 'instructor_id' => $userId];
+        $course = ['id' => null, 'title' => '', 'slug' => '', 'summary' => '', 'description' => '', 'description_blocks' => '[]', 'price' => '0', 'status' => 'draft', 'instructor_id' => $userId];
         if ($action === 'edit') {
             $id = (int) ($_GET['id'] ?? 0);
             $stmt = $db->prepare('SELECT * FROM courses WHERE id = ?');
@@ -28,6 +28,8 @@ switch ($action) {
                 $title = trim((string) ($_POST['title'] ?? ''));
                 $summary = trim((string) ($_POST['summary'] ?? ''));
                 $description = (string) ($_POST['description'] ?? '');
+                $blocks = Blocks::sanitize(Blocks::decode($_POST['description_blocks'] ?? '[]'));
+                $descriptionBlocks = json_encode($blocks);
                 $price = (float) ($_POST['price'] ?? 0);
                 $status = in_array($_POST['status'] ?? '', ['draft', 'published', 'archived'], true) ? $_POST['status'] : 'draft';
                 $slug = Security::slugify($_POST['slug'] !== '' ? (string) $_POST['slug'] : $title);
@@ -38,20 +40,20 @@ switch ($action) {
 
                 if (!$errors) {
                     if ($action === 'create') {
-                        $db->prepare('INSERT INTO courses (title, slug, summary, description, price, status, instructor_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                            ->execute([$title, $slug, $summary, $description, $price, $status, $userId]);
+                        $db->prepare('INSERT INTO courses (title, slug, summary, description, description_blocks, price, status, instructor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                            ->execute([$title, $slug, $summary, $description, $descriptionBlocks, $price, $status, $userId]);
                         $newId = (int) $db->lastInsertId();
                         header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $newId]));
                         exit;
                     }
 
-                    $db->prepare('UPDATE courses SET title = ?, slug = ?, summary = ?, description = ?, price = ?, status = ? WHERE id = ?')
-                        ->execute([$title, $slug, $summary, $description, $price, $status, $course['id']]);
+                    $db->prepare('UPDATE courses SET title = ?, slug = ?, summary = ?, description = ?, description_blocks = ?, price = ?, status = ? WHERE id = ?')
+                        ->execute([$title, $slug, $summary, $description, $descriptionBlocks, $price, $status, $course['id']]);
                     header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $course['id']]));
                     exit;
                 }
 
-                $course = array_merge($course, compact('title', 'slug', 'summary', 'description', 'price', 'status'));
+                $course = array_merge($course, compact('title', 'slug', 'summary', 'description', 'price', 'status'), ['description_blocks' => $descriptionBlocks]);
             }
         }
 

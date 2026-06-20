@@ -34,6 +34,7 @@ $appName = Config::get('app')['name'] ?? 'Bloomin LMS';
         <?php require __DIR__ . '/' . $view . '.php'; ?>
     </main>
 </div>
+<script src="/admin/assets/js/builder.js"></script>
 <script src="/admin/assets/js/admin.js"></script>
 </body>
 </html>

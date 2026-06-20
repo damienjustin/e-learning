@@ -27,7 +27,7 @@ if (!$module) {
 switch ($action) {
     case 'create':
     case 'edit':
-        $lesson = ['id' => null, 'title' => '', 'slug' => '', 'content_type' => 'text', 'content' => '', 'video_url' => '', 'position' => 0, 'duration_minutes' => null];
+        $lesson = ['id' => null, 'title' => '', 'slug' => '', 'content_type' => 'text', 'content' => '', 'content_blocks' => '[]', 'video_url' => '', 'position' => 0, 'duration_minutes' => null];
         if ($action === 'edit') {
             $id = (int) ($_GET['id'] ?? 0);
             $stmt = $db->prepare('SELECT * FROM lessons WHERE id = ? AND module_id = ?');
@@ -48,6 +48,8 @@ switch ($action) {
                 $slug = Security::slugify($_POST['slug'] !== '' ? (string) $_POST['slug'] : $title);
                 $contentType = in_array($_POST['content_type'] ?? '', ['text', 'video', 'file'], true) ? $_POST['content_type'] : 'text';
                 $content = (string) ($_POST['content'] ?? '');
+                $blocks = Blocks::sanitize(Blocks::decode($_POST['content_blocks'] ?? '[]'));
+                $contentBlocks = json_encode($blocks);
                 $videoUrl = trim((string) ($_POST['video_url'] ?? ''));
                 $position = (int) ($_POST['position'] ?? 0);
                 $duration = $_POST['duration_minutes'] !== '' ? (int) $_POST['duration_minutes'] : null;
@@ -61,16 +63,16 @@ switch ($action) {
 
                 if (!$errors) {
                     if ($action === 'create') {
-                        $db->prepare('INSERT INTO lessons (module_id, title, slug, content_type, content, video_url, position, duration_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-                            ->execute([$moduleId, $title, $slug, $contentType, $content, $videoUrl ?: null, $position, $duration]);
+                        $db->prepare('INSERT INTO lessons (module_id, title, slug, content_type, content, content_blocks, video_url, position, duration_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                            ->execute([$moduleId, $title, $slug, $contentType, $content, $contentBlocks, $videoUrl ?: null, $position, $duration]);
                     } else {
-                        $db->prepare('UPDATE lessons SET title = ?, slug = ?, content_type = ?, content = ?, video_url = ?, position = ?, duration_minutes = ? WHERE id = ? AND module_id = ?')
-                            ->execute([$title, $slug, $contentType, $content, $videoUrl ?: null, $position, $duration, $lesson['id'], $moduleId]);
+                        $db->prepare('UPDATE lessons SET title = ?, slug = ?, content_type = ?, content = ?, content_blocks = ?, video_url = ?, position = ?, duration_minutes = ? WHERE id = ? AND module_id = ?')
+                            ->execute([$title, $slug, $contentType, $content, $contentBlocks, $videoUrl ?: null, $position, $duration, $lesson['id'], $moduleId]);
                     }
                     header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
                     exit;
                 }
-                $lesson = array_merge($lesson, compact('title', 'slug', 'contentType', 'content', 'videoUrl', 'position', 'duration'));
+                $lesson = array_merge($lesson, compact('title', 'slug', 'contentType', 'content', 'videoUrl', 'position', 'duration'), ['content_blocks' => $contentBlocks]);
             }
         }
 
