@@ -162,5 +162,79 @@ code { background: #f0f0f1; padding: 2px 6px; border-radius: var(--radius); font
 .block-inline input { width: auto; min-height: auto; }
 .block-add-menu { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn-small { padding: 8px 14px; min-height: 36px; font-size: .85rem; width: auto; margin-top: 0; }
-.block-video iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
+.block-video iframe, .block-embed iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
 .block-button { display: inline-block; background: var(--color-primary); color: #fff; padding: 10px 18px; border-radius: var(--radius); text-decoration: none; }
+.block-file { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--color-primary); font-weight: 600; }
+.block-table { width: 100%; border-collapse: collapse; }
+.block-table th, .block-table td { border: 1px solid var(--color-border); padding: 8px 10px; text-align: left; }
+.block-table th { background: #f0f0f1; }
+.block-accordion details { border: 1px solid var(--color-border); border-radius: var(--radius); margin-bottom: 8px; padding: 0; }
+.block-accordion summary { padding: 10px 14px; cursor: pointer; font-weight: 600; }
+.block-accordion details > div { padding: 0 14px 14px; }
+
+/* Block builder add menu (grid of icon buttons) */
+.block-add-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    min-width: 78px;
+    cursor: pointer;
+    font-size: .78rem;
+    color: #50575e;
+}
+.block-add-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.block-add-icon { font-size: 1.1rem; }
+
+/* Drag-and-drop reorder feedback */
+.block-item.is-dragging { opacity: .4; }
+.block-item.drop-before { box-shadow: inset 0 3px 0 0 var(--color-primary); }
+.block-item.drop-after { box-shadow: inset 0 -3px 0 0 var(--color-primary); }
+
+/* Editor + live preview side-by-side layout */
+.block-builder-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.block-builder-preview {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #fff;
+    padding: 14px;
+    position: sticky;
+    top: 12px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.block-preview-label { font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #8c8f94; margin-bottom: 10px; }
+.block-preview img { max-width: 100%; }
+@media (max-width: 900px) {
+    .block-builder-layout { grid-template-columns: 1fr; }
+    .block-builder-preview { position: static; max-height: none; }
+}
+
+/* Table block editor in the admin */
+.block-table-editor { display: flex; flex-direction: column; gap: 6px; }
+.block-table-row { display: flex; gap: 6px; align-items: center; }
+.block-table-row input { flex: 1; }
+.block-accordion-item { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+.block-accordion-item .btn-icon { position: absolute; top: 6px; right: 6px; }
+
+/* Module / lesson / quiz drag-and-drop reorder list (course editor) */
+.reorder-list { display: flex; flex-direction: column; gap: 6px; }
+.reorder-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    cursor: grab;
+}
+.reorder-item .block-handle { cursor: grab; }
+.reorder-item.is-dragging { opacity: .4; }
+.reorder-item.drop-before { box-shadow: inset 0 3px 0 0 var(--color-primary); }
+.reorder-item.drop-after { box-shadow: inset 0 -3px 0 0 var(--color-primary); }
+.reorder-item a { flex: 1; }

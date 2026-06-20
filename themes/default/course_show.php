@@ -22,6 +22,10 @@
     <?php foreach ($modules as $module): ?>
         <div class="module">
             <h3><?= Security::e($module['title']) ?></h3>
+            <?php $moduleBlocks = Blocks::decode($module['description_blocks'] ?? null); ?>
+            <?php if ($moduleBlocks): ?>
+                <div class="prose"><?= Blocks::render($moduleBlocks) ?></div>
+            <?php endif; ?>
             <ul class="lesson-list">
                 <?php foreach ($module['lessons'] as $lesson): ?>
                     <li>

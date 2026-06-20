@@ -8,8 +8,16 @@
 $builderId = 'bb_' . preg_replace('/[^a-z0-9_]/', '', strtolower($builderName));
 ?>
 <div class="block-builder" data-builder data-target="#<?= Security::e($builderId) ?>_input" id="<?= Security::e($builderId) ?>">
-    <div class="block-list"></div>
-    <div class="block-add-menu"></div>
+    <div class="block-builder-layout">
+        <div class="block-builder-editor">
+            <div class="block-list"></div>
+            <div class="block-add-menu"></div>
+        </div>
+        <div class="block-builder-preview">
+            <div class="block-preview-label">Aperçu</div>
+            <div class="block-preview prose"></div>
+        </div>
+    </div>
     <input type="hidden" id="<?= Security::e($builderId) ?>_input" name="<?= Security::e($builderName) ?>" value="<?= Security::e($builderBlocksJson) ?>">
 </div>
 <script src="/admin/assets/js/builder.js"></script>

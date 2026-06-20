@@ -1,8 +1,9 @@
 /**
  * Vanilla JS block builder (paragraph/heading/image/video/quote/list/code/
- * divider/button). Each instance manages its own block array in memory
- * and keeps a hidden input in sync as JSON so the server form receives
- * the data through a normal POST, with no client-side framework involved.
+ * divider/button/table/file/accordion/embed/spacer). Each instance manages
+ * its own block array in memory, keeps a hidden input in sync as JSON so
+ * the server form receives the data through a normal POST, and renders a
+ * live preview pane mirroring the public-facing output.
  */
 (function () {
     const BLOCK_TYPES = {
@@ -14,6 +15,11 @@
         list: { label: 'Liste', icon: '☰' },
         code: { label: 'Code', icon: '</>' },
         button: { label: 'Bouton', icon: '⬚' },
+        table: { label: 'Tableau', icon: '▦' },
+        file: { label: 'Fichier', icon: '📎' },
+        accordion: { label: 'Accordéon', icon: '▾' },
+        embed: { label: 'Intégration', icon: '⧉' },
+        spacer: { label: 'Espaceur', icon: '↕' },
         divider: { label: 'Séparateur', icon: '—' },
     };
 
@@ -25,6 +31,11 @@
             case 'list': return { ordered: false, items: [''] };
             case 'code': return { code: '', language: '' };
             case 'button': return { label: '', url: '' };
+            case 'table': return { rows: [['', ''], ['', '']] };
+            case 'file': return { url: '', label: '' };
+            case 'accordion': return { items: [{ title: '', content: '' }] };
+            case 'embed': return { url: '' };
+            case 'spacer': return { height: 32 };
             case 'divider': return {};
             default: return { text: '' };
         }
@@ -32,7 +43,6 @@
 
     function fieldsHtml(block, index) {
         const d = block.data || {};
-        const p = (name) => `b_${index}_${name}`;
         switch (block.type) {
             case 'paragraph':
             case 'quote':
@@ -72,8 +82,94 @@
                 return `
                     <input type="text" data-field="label" placeholder="Libellé du bouton" value="${escapeAttr(d.label || '')}">
                     <input type="url" data-field="url" placeholder="URL du lien" value="${escapeAttr(d.url || '')}">`;
+            case 'table': {
+                const rows = d.rows && d.rows.length ? d.rows : [['', ''], ['', '']];
+                return `
+                    <div data-field="rows" class="block-table-editor">
+                        ${rows.map((row, ri) => `
+                            <div class="block-table-row">
+                                ${row.map((cell, ci) => `<input type="text" data-row-index="${ri}" data-cell-index="${ci}" value="${escapeAttr(cell)}" placeholder="${ri === 0 ? 'En-tête' : 'Cellule'}">`).join('')}
+                                <button type="button" class="btn-icon" data-action="remove-row">&times;</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn-secondary btn-small" data-action="add-row">+ Ligne</button>
+                    <button type="button" class="btn-secondary btn-small" data-action="add-col">+ Colonne</button>`;
+            }
+            case 'file':
+                return `
+                    <input type="url" data-field="url" placeholder="URL du fichier" value="${escapeAttr(d.url || '')}">
+                    <input type="text" data-field="label" placeholder="Libellé (ex: Télécharger le PDF)" value="${escapeAttr(d.label || '')}">`;
+            case 'accordion': {
+                const items = d.items && d.items.length ? d.items : [{ title: '', content: '' }];
+                return `
+                    <div data-field="items">
+                        ${items.map((item, i) => `
+                            <div class="block-accordion-item">
+                                <input type="text" data-acc-index="${i}" data-acc-field="title" value="${escapeAttr(item.title || '')}" placeholder="Titre du volet">
+                                <textarea rows="2" data-acc-index="${i}" data-acc-field="content" placeholder="Contenu du volet">${escapeHtml(item.content || '')}</textarea>
+                                <button type="button" class="btn-icon" data-action="remove-acc-item">&times;</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn-secondary btn-small" data-action="add-acc-item">+ Volet</button>`;
+            }
+            case 'embed':
+                return `<input type="url" data-field="url" placeholder="URL à intégrer (iframe)" value="${escapeAttr(d.url || '')}">`;
+            case 'spacer':
+                return `<input type="number" min="4" max="200" data-field="height" placeholder="Hauteur (px)" value="${escapeAttr(d.height || 32)}">`;
             case 'divider':
                 return `<p class="muted">Ligne de séparation.</p>`;
+            default:
+                return '';
+        }
+    }
+
+    function previewHtml(block) {
+        const d = block.data || {};
+        switch (block.type) {
+            case 'paragraph':
+                return `<p>${escapeHtml(d.text || '').replace(/\n/g, '<br>')}</p>`;
+            case 'quote':
+                return `<blockquote>${escapeHtml(d.text || '').replace(/\n/g, '<br>')}</blockquote>`;
+            case 'heading': {
+                const level = [2, 3, 4].includes(d.level) ? d.level : 2;
+                return `<h${level}>${escapeHtml(d.text || '(titre vide)')}</h${level}>`;
+            }
+            case 'image':
+                return d.url
+                    ? `<figure><img src="${escapeAttr(d.url)}" alt="${escapeAttr(d.alt || '')}">${d.caption ? `<figcaption>${escapeHtml(d.caption)}</figcaption>` : ''}</figure>`
+                    : '<p class="muted">(image sans URL)</p>';
+            case 'video':
+                return d.url ? `<div class="block-video"><iframe src="${escapeAttr(d.url)}" frameborder="0"></iframe></div>` : '<p class="muted">(vidéo sans URL)</p>';
+            case 'list': {
+                const items = (d.items || []).filter((i) => i.trim() !== '');
+                if (!items.length) return '<p class="muted">(liste vide)</p>';
+                const tag = d.ordered ? 'ol' : 'ul';
+                return `<${tag}>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</${tag}>`;
+            }
+            case 'code':
+                return `<pre><code>${escapeHtml(d.code || '')}</code></pre>`;
+            case 'button':
+                return d.label && d.url ? `<p><a class="block-button" href="${escapeAttr(d.url)}">${escapeHtml(d.label)}</a></p>` : '<p class="muted">(bouton incomplet)</p>';
+            case 'table': {
+                const rows = d.rows || [];
+                if (!rows.length) return '<p class="muted">(tableau vide)</p>';
+                return `<table class="block-table"><tbody>${rows.map((row, i) => `<tr>${row.map((c) => `<${i === 0 ? 'th' : 'td'}>${escapeHtml(c)}</${i === 0 ? 'th' : 'td'}>`).join('')}</tr>`).join('')}</tbody></table>`;
+            }
+            case 'file':
+                return d.url ? `<p><a class="block-file" href="${escapeAttr(d.url)}">📎 ${escapeHtml(d.label || 'Télécharger le fichier')}</a></p>` : '<p class="muted">(fichier sans URL)</p>';
+            case 'accordion': {
+                const items = (d.items || []).filter((i) => (i.title || '').trim() !== '');
+                if (!items.length) return '<p class="muted">(accordéon vide)</p>';
+                return `<div class="block-accordion">${items.map((i) => `<details><summary>${escapeHtml(i.title)}</summary><div>${escapeHtml(i.content || '').replace(/\n/g, '<br>')}</div></details>`).join('')}</div>`;
+            }
+            case 'embed':
+                return d.url ? `<div class="block-embed"><iframe src="${escapeAttr(d.url)}" frameborder="0"></iframe></div>` : '<p class="muted">(intégration sans URL)</p>';
+            case 'spacer':
+                return `<div class="block-spacer" style="height:${parseInt(d.height, 10) || 32}px;border:1px dashed var(--color-border)"></div>`;
+            case 'divider':
+                return '<hr>';
             default:
                 return '';
         }
@@ -98,6 +194,7 @@
             }
             this.list = root.querySelector('.block-list');
             this.addMenu = root.querySelector('.block-add-menu');
+            this.preview = root.querySelector('.block-preview');
             this.buildAddMenu();
             this.render();
             this.bindEvents();
@@ -105,7 +202,7 @@
 
         buildAddMenu() {
             this.addMenu.innerHTML = Object.entries(BLOCK_TYPES).map(([type, info]) =>
-                `<button type="button" class="btn-secondary btn-small" data-add-type="${type}">${info.icon} ${info.label}</button>`
+                `<button type="button" class="block-add-btn" data-add-type="${type}"><span class="block-add-icon">${info.icon}</span><span>${info.label}</span></button>`
             ).join('');
         }
 
@@ -129,6 +226,12 @@
 
         sync() {
             this.input.value = JSON.stringify(this.blocks);
+            this.renderPreview();
+        }
+
+        renderPreview() {
+            if (!this.preview) return;
+            this.preview.innerHTML = this.blocks.map(previewHtml).join('') || '<p class="muted">L\'aperçu apparaîtra ici.</p>';
         }
 
         bindEvents() {
@@ -145,6 +248,7 @@
                 if (!item) return;
                 const index = parseInt(item.dataset.index, 10);
                 const action = e.target.closest('[data-action]')?.dataset.action;
+                const block = this.blocks[index];
 
                 if (action === 'delete') {
                     this.blocks.splice(index, 1);
@@ -156,12 +260,32 @@
                     [this.blocks[index + 1], this.blocks[index]] = [this.blocks[index], this.blocks[index + 1]];
                     this.render();
                 } else if (action === 'add-item') {
-                    (this.blocks[index].data.items ||= []).push('');
+                    (block.data.items ||= []).push('');
                     this.render();
                 } else if (action === 'remove-item') {
                     const row = e.target.closest('.block-list-item');
                     const idx = Array.from(row.parentElement.children).indexOf(row);
-                    this.blocks[index].data.items.splice(idx, 1);
+                    block.data.items.splice(idx, 1);
+                    this.render();
+                } else if (action === 'add-row') {
+                    const cols = block.data.rows[0]?.length || 2;
+                    block.data.rows.push(new Array(cols).fill(''));
+                    this.render();
+                } else if (action === 'remove-row') {
+                    const row = e.target.closest('.block-table-row');
+                    const idx = Array.from(row.parentElement.children).indexOf(row);
+                    block.data.rows.splice(idx, 1);
+                    this.render();
+                } else if (action === 'add-col') {
+                    block.data.rows.forEach((row) => row.push(''));
+                    this.render();
+                } else if (action === 'add-acc-item') {
+                    (block.data.items ||= []).push({ title: '', content: '' });
+                    this.render();
+                } else if (action === 'remove-acc-item') {
+                    const row = e.target.closest('.block-accordion-item');
+                    const idx = Array.from(row.parentElement.children).indexOf(row);
+                    block.data.items.splice(idx, 1);
                     this.render();
                 }
             });
@@ -170,18 +294,25 @@
                 const item = e.target.closest('.block-item');
                 if (!item) return;
                 const index = parseInt(item.dataset.index, 10);
+                const block = this.blocks[index];
                 const field = e.target.dataset.field;
                 const itemIndexAttr = e.target.dataset.itemIndex;
+                const rowIndexAttr = e.target.dataset.rowIndex;
+                const accIndexAttr = e.target.dataset.accIndex;
 
                 if (itemIndexAttr !== undefined) {
-                    this.blocks[index].data.items[parseInt(itemIndexAttr, 10)] = e.target.value;
+                    block.data.items[parseInt(itemIndexAttr, 10)] = e.target.value;
+                } else if (rowIndexAttr !== undefined) {
+                    block.data.rows[parseInt(rowIndexAttr, 10)][parseInt(e.target.dataset.cellIndex, 10)] = e.target.value;
+                } else if (accIndexAttr !== undefined) {
+                    block.data.items[parseInt(accIndexAttr, 10)][e.target.dataset.accField] = e.target.value;
                 } else if (field) {
                     if (e.target.type === 'checkbox') {
-                        this.blocks[index].data[field] = e.target.checked;
-                    } else if (field === 'level') {
-                        this.blocks[index].data[field] = parseInt(e.target.value, 10);
+                        block.data[field] = e.target.checked;
+                    } else if (field === 'level' || field === 'height') {
+                        block.data[field] = parseInt(e.target.value, 10);
                     } else {
-                        this.blocks[index].data[field] = e.target.value;
+                        block.data[field] = e.target.value;
                     }
                 }
                 this.sync();
@@ -192,19 +323,39 @@
                 const item = e.target.closest('.block-item');
                 if (!item) return;
                 dragIndex = parseInt(item.dataset.index, 10);
+                item.classList.add('is-dragging');
                 e.dataTransfer.effectAllowed = 'move';
+            });
+            this.list.addEventListener('dragend', (e) => {
+                const item = e.target.closest('.block-item');
+                if (item) item.classList.remove('is-dragging');
+                this.list.querySelectorAll('.block-item').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
             });
             this.list.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                const item = e.target.closest('.block-item');
+                if (!item || dragIndex === null) return;
+                this.list.querySelectorAll('.block-item').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+                const rect = item.getBoundingClientRect();
+                const before = (e.clientY - rect.top) < rect.height / 2;
+                item.classList.add(before ? 'drop-before' : 'drop-after');
             });
             this.list.addEventListener('drop', (e) => {
                 e.preventDefault();
                 const item = e.target.closest('.block-item');
                 if (!item || dragIndex === null) return;
                 const dropIndex = parseInt(item.dataset.index, 10);
-                if (dropIndex === dragIndex) return;
+                const rect = item.getBoundingClientRect();
+                const before = (e.clientY - rect.top) < rect.height / 2;
+                let targetIndex = before ? dropIndex : dropIndex + 1;
+                if (targetIndex === dragIndex || targetIndex === dragIndex + 1) {
+                    dragIndex = null;
+                    this.render();
+                    return;
+                }
                 const [moved] = this.blocks.splice(dragIndex, 1);
-                this.blocks.splice(dropIndex, 0, moved);
+                if (targetIndex > dragIndex) targetIndex -= 1;
+                this.blocks.splice(targetIndex, 0, moved);
                 dragIndex = null;
                 this.render();
             });
