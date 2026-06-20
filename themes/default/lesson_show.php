@@ -25,7 +25,12 @@
             </div>
         <?php endif; ?>
 
-        <div class="prose"><?= $lesson['content'] ?? '' ?></div>
+        <?php $lessonBlocks = Blocks::decode($lesson['content_blocks'] ?? null); ?>
+        <?php if ($lessonBlocks): ?>
+            <div class="prose"><?= Blocks::render($lessonBlocks) ?></div>
+        <?php else: ?>
+            <div class="prose"><?= $lesson['content'] ?? '' ?></div>
+        <?php endif; ?>
 
         <form method="post">
             <?= Security::csrfField() ?>

@@ -23,9 +23,12 @@
     <label>URL vidéo (YouTube/Vimeo embed)
         <input type="url" name="video_url" value="<?= Security::e($lesson['video_url']) ?>">
     </label>
-    <label>Contenu (HTML autorisé pour la mise en forme)
-        <textarea name="content" rows="10"><?= Security::e($lesson['content']) ?></textarea>
-    </label>
+    <label>Contenu de la leçon</label>
+    <?php
+        $builderName = 'content_blocks';
+        $builderBlocksJson = $lesson['content_blocks'] ?? '[]';
+        require __DIR__ . '/partials/block_builder.php';
+    ?>
     <label>Durée estimée (minutes)
         <input type="number" name="duration_minutes" value="<?= Security::e((string) ($lesson['duration_minutes'] ?? '')) ?>">
     </label>
