@@ -12,6 +12,7 @@ require __DIR__ . '/partials/breadcrumb.php';
             <?php if ($course['status'] !== 'published'): ?>
                 <a class="btn-secondary" href="<?= adminUrl('courses', ['action' => 'preview', 'id' => $course['id']]) ?>" target="_blank">Aperçu</a>
             <?php endif; ?>
+            <a class="btn-secondary" href="<?= adminUrl('courses', ['action' => 'progress', 'id' => $course['id']]) ?>">Progression</a>
             <form method="post" action="<?= adminUrl('courses', ['action' => 'duplicate']) ?>" style="display:inline">
                 <?= Security::csrfField() ?>
                 <input type="hidden" name="id" value="<?= (int) $course['id'] ?>">

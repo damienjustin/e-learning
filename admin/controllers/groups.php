@@ -43,6 +43,7 @@ switch ($action) {
 
         $members = [];
         $courses = [];
+        $candidates = [];
         if ($group['id']) {
             $stmt = $db->prepare('SELECT u.* FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? ORDER BY u.name ASC');
             $stmt->execute([$group['id']]);
@@ -51,18 +52,22 @@ switch ($action) {
             $stmt = $db->prepare('SELECT c.* FROM course_access ca JOIN courses c ON c.id = ca.course_id WHERE ca.group_id = ? ORDER BY c.title ASC');
             $stmt->execute([$group['id']]);
             $courses = $stmt->fetchAll();
+
+            $stmt = $db->prepare('SELECT DISTINCT u.id, u.name, u.email
+                FROM enrollments e JOIN users u ON u.id = e.user_id
+                WHERE u.id NOT IN (SELECT user_id FROM group_members WHERE group_id = ?)
+                ORDER BY u.name ASC');
+            $stmt->execute([$group['id']]);
+            $candidates = $stmt->fetchAll();
         }
 
-        render('groups_form', ['group' => $group, 'errors' => $errors, 'members' => $members, 'courses' => $courses]);
+        render('groups_form', ['group' => $group, 'errors' => $errors, 'members' => $members, 'courses' => $courses, 'candidates' => $candidates]);
         break;
 
     case 'add_member':
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null)) {
             $groupId = (int) ($_POST['id'] ?? 0);
-            $email = trim((string) ($_POST['user_email'] ?? ''));
-            $stmt = $db->prepare('SELECT id FROM users WHERE email = ?');
-            $stmt->execute([$email]);
-            $userId = $stmt->fetchColumn();
+            $userId = (int) ($_POST['user_id'] ?? 0);
             if ($userId) {
                 $db->prepare('INSERT IGNORE INTO group_members (group_id, user_id) VALUES (?, ?)')->execute([$groupId, $userId]);
             }

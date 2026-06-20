@@ -187,6 +187,63 @@ switch ($action) {
         header('Location: ' . adminUrl('courses'));
         exit;
 
+    case 'progress':
+        $id = (int) ($_GET['id'] ?? 0);
+        $stmt = $db->prepare('SELECT * FROM courses WHERE id = ?');
+        $stmt->execute([$id]);
+        $course = $stmt->fetch();
+        if (!$course || (!$isAdmin && (int) $course['instructor_id'] !== $userId)) {
+            http_response_code(404);
+            exit('Cours introuvable.');
+        }
+
+        $stmt = $db->prepare('SELECT COUNT(*) FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = ?');
+        $stmt->execute([$id]);
+        $totalLessons = (int) $stmt->fetchColumn();
+
+        $stmt = $db->prepare('SELECT u.id, u.name, u.email, e.enrolled_at,
+                (SELECT COUNT(*) FROM lesson_progress lp
+                    JOIN lessons l ON l.id = lp.lesson_id
+                    JOIN modules m ON m.id = l.module_id
+                    WHERE m.course_id = ? AND lp.user_id = u.id) AS completed_lessons
+            FROM enrollments e JOIN users u ON u.id = e.user_id
+            WHERE e.course_id = ? ORDER BY e.enrolled_at DESC');
+        $stmt->execute([$id, $id]);
+        $students = $stmt->fetchAll();
+
+        render('course_progress', ['course' => $course, 'students' => $students, 'totalLessons' => $totalLessons]);
+        break;
+
+    case 'export_enrollments':
+        $id = (int) ($_GET['id'] ?? 0);
+        $stmt = $db->prepare('SELECT * FROM courses WHERE id = ?');
+        $stmt->execute([$id]);
+        $course = $stmt->fetch();
+        if (!$course || (!$isAdmin && (int) $course['instructor_id'] !== $userId)) {
+            http_response_code(404);
+            exit('Cours introuvable.');
+        }
+
+        $stmt = $db->prepare('SELECT u.name, u.email, e.enrolled_at, e.completed_at,
+                (SELECT COUNT(*) FROM lesson_progress lp
+                    JOIN lessons l ON l.id = lp.lesson_id
+                    JOIN modules m ON m.id = l.module_id
+                    WHERE m.course_id = ? AND lp.user_id = u.id) AS completed_lessons
+            FROM enrollments e JOIN users u ON u.id = e.user_id
+            WHERE e.course_id = ? ORDER BY e.enrolled_at DESC');
+        $stmt->execute([$id, $id]);
+        $rows = $stmt->fetchAll();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="inscriptions-' . $course['slug'] . '.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['Nom', 'Email', 'Inscrit le', 'Terminé le', 'Leçons complétées']);
+        foreach ($rows as $row) {
+            fputcsv($out, [$row['name'], $row['email'], $row['enrolled_at'], $row['completed_at'] ?? '', $row['completed_lessons']]);
+        }
+        fclose($out);
+        exit;
+
     case 'preview':
         $id = (int) ($_GET['id'] ?? 0);
         $stmt = $db->prepare('SELECT * FROM courses WHERE id = ?');
