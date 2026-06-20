@@ -3,7 +3,9 @@
  * divider/button/table/file/accordion/embed/spacer). Each instance manages
  * its own block array in memory, keeps a hidden input in sync as JSON so
  * the server form receives the data through a normal POST, and renders a
- * live preview pane mirroring the public-facing output.
+ * live preview pane mirroring the public-facing output. Adds Notion-style
+ * inline "+" insertion between blocks, undo/redo, duplication, collapse,
+ * a searchable block picker and an editor/preview/split view toggle.
  */
 (function () {
     const BLOCK_TYPES = {
@@ -41,7 +43,7 @@
         }
     }
 
-    function fieldsHtml(block, index) {
+    function fieldsHtml(block) {
         const d = block.data || {};
         switch (block.type) {
             case 'paragraph':
@@ -192,41 +194,118 @@
             } catch (e) {
                 this.blocks = [];
             }
+            this.collapsed = new Set();
+            this.history = [JSON.stringify(this.blocks)];
+            this.historyIndex = 0;
+            this.dirty = false;
+            this.activePicker = null;
+
             this.list = root.querySelector('.block-list');
             this.addMenu = root.querySelector('.block-add-menu');
-            this.preview = root.querySelector('.block-preview');
+            this.preview = root.querySelector('.block-builder-preview .block-preview');
+            this.toolbar = root.querySelector('.block-toolbar');
+            this.countLabel = root.querySelector('.block-count');
+
             this.buildAddMenu();
+            this.bindToolbar();
             this.render();
             this.bindEvents();
+            this.bindUnloadGuard();
         }
 
         buildAddMenu() {
-            this.addMenu.innerHTML = Object.entries(BLOCK_TYPES).map(([type, info]) =>
-                `<button type="button" class="block-add-btn" data-add-type="${type}"><span class="block-add-icon">${info.icon}</span><span>${info.label}</span></button>`
-            ).join('');
+            this.addMenu.innerHTML = `<button type="button" class="btn-secondary btn-small" data-action="open-append-picker">+ Ajouter un bloc</button>`;
         }
 
-        render() {
-            this.list.innerHTML = this.blocks.map((block, index) => `
-                <div class="block-item" draggable="true" data-index="${index}">
+        bindToolbar() {
+            if (!this.toolbar) return;
+            this.toolbar.addEventListener('click', (e) => {
+                const undoBtn = e.target.closest('[data-action="undo"]');
+                const redoBtn = e.target.closest('[data-action="redo"]');
+                const viewBtn = e.target.closest('[data-view]');
+                if (undoBtn) { this.undo(); }
+                if (redoBtn) { this.redo(); }
+                if (viewBtn) {
+                    this.toolbar.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('is-active'));
+                    viewBtn.classList.add('is-active');
+                    this.root.querySelector('.block-builder-layout').dataset.view = viewBtn.dataset.view;
+                }
+            });
+        }
+
+        bindUnloadGuard() {
+            window.addEventListener('beforeunload', (e) => {
+                if (!this.dirty) return;
+                e.preventDefault();
+                e.returnValue = '';
+            });
+            const form = this.root.closest('form');
+            if (form) {
+                form.addEventListener('submit', () => { this.dirty = false; });
+            }
+        }
+
+        pushHistory() {
+            const snapshot = JSON.stringify(this.blocks);
+            if (snapshot === this.history[this.historyIndex]) return;
+            this.history = this.history.slice(0, this.historyIndex + 1);
+            this.history.push(snapshot);
+            this.historyIndex = this.history.length - 1;
+            this.dirty = true;
+        }
+
+        undo() {
+            if (this.historyIndex <= 0) return;
+            this.historyIndex -= 1;
+            this.blocks = JSON.parse(this.history[this.historyIndex]);
+            this.render(false);
+        }
+
+        redo() {
+            if (this.historyIndex >= this.history.length - 1) return;
+            this.historyIndex += 1;
+            this.blocks = JSON.parse(this.history[this.historyIndex]);
+            this.render(false);
+        }
+
+        render(recordHistory = true) {
+            const insertRow = (atIndex) => `<div class="block-insert-row"><button type="button" class="block-insert-btn" data-insert-at="${atIndex}" title="Insérer un bloc ici">+</button></div>`;
+
+            this.list.innerHTML = insertRow(0) + this.blocks.map((block, index) => {
+                const isCollapsed = this.collapsed.has(index);
+                return `
+                <div class="block-item ${isCollapsed ? 'is-collapsed' : ''}" draggable="true" data-index="${index}">
                     <div class="block-item-header">
                         <span class="block-handle" title="Déplacer">⠿</span>
+                        <button type="button" class="block-collapse-toggle" data-action="toggle-collapse" title="${isCollapsed ? 'Déplier' : 'Replier'}">${isCollapsed ? '▸' : '▾'}</button>
                         <span class="block-type-label">${BLOCK_TYPES[block.type]?.icon || ''} ${BLOCK_TYPES[block.type]?.label || block.type}</span>
                         <div class="block-item-actions">
+                            <button type="button" class="btn-icon" data-action="duplicate" title="Dupliquer">⎘</button>
                             <button type="button" class="btn-icon" data-action="up" title="Monter">↑</button>
                             <button type="button" class="btn-icon" data-action="down" title="Descendre">↓</button>
                             <button type="button" class="btn-icon" data-action="delete" title="Supprimer">&times;</button>
                         </div>
                     </div>
-                    <div class="block-item-body">${fieldsHtml(block, index)}</div>
+                    <div class="block-item-body" ${isCollapsed ? 'hidden' : ''}>${fieldsHtml(block)}</div>
                 </div>
-            `).join('') || '<p class="muted">Aucun bloc. Ajoutez-en un ci-dessous.</p>';
+                ${insertRow(index + 1)}
+            `;
+            }).join('');
+
+            if (!this.blocks.length) {
+                this.list.insertAdjacentHTML('beforeend', '<p class="muted block-empty-hint">Aucun bloc. Cliquez sur "+" pour en ajouter un.</p>');
+            }
+
             this.sync();
+            if (recordHistory) this.pushHistory();
         }
 
         sync() {
             this.input.value = JSON.stringify(this.blocks);
             this.renderPreview();
+            if (this.countLabel) {
+                this.countLabel.textContent = this.blocks.length + (this.blocks.length === 1 ? ' bloc' : ' blocs');
+            }
         }
 
         renderPreview() {
@@ -234,16 +313,73 @@
             this.preview.innerHTML = this.blocks.map(previewHtml).join('') || '<p class="muted">L\'aperçu apparaîtra ici.</p>';
         }
 
+        openPicker(anchorEl, onPick) {
+            this.closePicker();
+            const picker = document.createElement('div');
+            picker.className = 'block-picker';
+            picker.innerHTML = `
+                <input type="text" class="block-picker-search" placeholder="Rechercher un type de bloc...">
+                <div class="block-picker-results"></div>`;
+            const searchInput = picker.querySelector('.block-picker-search');
+            const results = picker.querySelector('.block-picker-results');
+
+            const renderResults = (query) => {
+                const q = query.trim().toLowerCase();
+                const matches = Object.entries(BLOCK_TYPES).filter(([type, info]) => !q || info.label.toLowerCase().includes(q) || type.includes(q));
+                results.innerHTML = matches.map(([type, info]) =>
+                    `<button type="button" class="block-picker-item" data-pick-type="${type}"><span class="block-add-icon">${info.icon}</span>${info.label}</button>`
+                ).join('') || '<p class="muted">Aucun résultat.</p>';
+            };
+            renderResults('');
+
+            searchInput.addEventListener('input', () => renderResults(searchInput.value));
+            results.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-pick-type]');
+                if (!btn) return;
+                onPick(btn.dataset.pickType);
+                this.closePicker();
+            });
+
+            anchorEl.insertAdjacentElement('afterend', picker);
+            this.activePicker = picker;
+            searchInput.focus();
+
+            this._outsideClickHandler = (e) => {
+                if (!picker.contains(e.target) && e.target !== anchorEl) this.closePicker();
+            };
+            document.addEventListener('click', this._outsideClickHandler, { capture: true });
+        }
+
+        closePicker() {
+            if (this.activePicker) {
+                this.activePicker.remove();
+                this.activePicker = null;
+            }
+            if (this._outsideClickHandler) {
+                document.removeEventListener('click', this._outsideClickHandler, { capture: true });
+                this._outsideClickHandler = null;
+            }
+        }
+
+        insertBlockAt(index, type) {
+            this.blocks.splice(index, 0, { type, data: emptyData(type) });
+            this.render();
+        }
+
         bindEvents() {
             this.addMenu.addEventListener('click', (e) => {
-                const btn = e.target.closest('[data-add-type]');
+                const btn = e.target.closest('[data-action="open-append-picker"]');
                 if (!btn) return;
-                const type = btn.dataset.addType;
-                this.blocks.push({ type, data: emptyData(type) });
-                this.render();
+                this.openPicker(btn, (type) => this.insertBlockAt(this.blocks.length, type));
             });
 
             this.list.addEventListener('click', (e) => {
+                const insertBtn = e.target.closest('[data-insert-at]');
+                if (insertBtn) {
+                    this.openPicker(insertBtn, (type) => this.insertBlockAt(parseInt(insertBtn.dataset.insertAt, 10), type));
+                    return;
+                }
+
                 const item = e.target.closest('.block-item');
                 if (!item) return;
                 const index = parseInt(item.dataset.index, 10);
@@ -252,7 +388,14 @@
 
                 if (action === 'delete') {
                     this.blocks.splice(index, 1);
+                    this.collapsed.delete(index);
                     this.render();
+                } else if (action === 'duplicate') {
+                    this.blocks.splice(index + 1, 0, JSON.parse(JSON.stringify(block)));
+                    this.render();
+                } else if (action === 'toggle-collapse') {
+                    this.collapsed.has(index) ? this.collapsed.delete(index) : this.collapsed.add(index);
+                    this.render(false);
                 } else if (action === 'up' && index > 0) {
                     [this.blocks[index - 1], this.blocks[index]] = [this.blocks[index], this.blocks[index - 1]];
                     this.render();
@@ -316,6 +459,16 @@
                     }
                 }
                 this.sync();
+                this.dirty = true;
+            });
+
+            this.list.addEventListener('change', () => this.pushHistory());
+
+            this.root.addEventListener('keydown', (e) => {
+                const isMeta = e.ctrlKey || e.metaKey;
+                if (!isMeta || e.target.closest('.block-item-body')) return;
+                if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); this.undo(); }
+                else if (e.key.toLowerCase() === 'z' && e.shiftKey) { e.preventDefault(); this.redo(); }
             });
 
             let dragIndex = null;
@@ -350,7 +503,7 @@
                 let targetIndex = before ? dropIndex : dropIndex + 1;
                 if (targetIndex === dragIndex || targetIndex === dragIndex + 1) {
                     dragIndex = null;
-                    this.render();
+                    this.render(false);
                     return;
                 }
                 const [moved] = this.blocks.splice(dragIndex, 1);
