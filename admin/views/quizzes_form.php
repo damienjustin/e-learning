@@ -1,5 +1,13 @@
+<?php
+$crumbs = [
+    ['label' => 'Cours', 'url' => adminUrl('courses')],
+    ['label' => $course['title'], 'url' => adminUrl('courses', ['action' => 'edit', 'id' => $course['id']])],
+    ['label' => $module['title'], 'url' => adminUrl('modules', ['action' => 'edit', 'id' => $module['id'], 'course_id' => $course['id']])],
+    ['label' => $quiz['id'] ? $quiz['title'] : 'Nouveau quiz'],
+];
+require __DIR__ . '/partials/breadcrumb.php';
+?>
 <h1><?= $quiz['id'] ? 'Modifier le quiz' : 'Nouveau quiz' ?></h1>
-<p class="muted">Cours : <?= Security::e($course['title']) ?> &rsaquo; Module : <?= Security::e($module['title']) ?></p>
 
 <?php foreach ($errors as $err): ?>
     <div class="alert alert-error"><?= Security::e($err) ?></div>

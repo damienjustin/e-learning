@@ -72,18 +72,28 @@ switch ($action) {
             echo json_encode(['ok' => false]);
             exit;
         }
+        $kind = $_POST['kind'] ?? '';
+        $ids = json_decode($_POST['order'] ?? '[]', true);
+        if (!in_array($kind, ['lessons', 'quizzes', 'modules'], true) || !is_array($ids)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+
+        if ($kind === 'modules') {
+            $update = $db->prepare('UPDATE modules SET position = ? WHERE id = ? AND course_id = ?');
+            foreach (array_values($ids) as $position => $id) {
+                $update->execute([$position, (int) $id, $courseId]);
+            }
+            echo json_encode(['ok' => true]);
+            exit;
+        }
+
         $moduleId = (int) ($_POST['module_id'] ?? 0);
         $stmt = $db->prepare('SELECT id FROM modules WHERE id = ? AND course_id = ?');
         $stmt->execute([$moduleId, $courseId]);
         if (!$stmt->fetchColumn()) {
             http_response_code(404);
-            echo json_encode(['ok' => false]);
-            exit;
-        }
-        $kind = $_POST['kind'] ?? '';
-        $ids = json_decode($_POST['order'] ?? '[]', true);
-        if (!in_array($kind, ['lessons', 'quizzes'], true) || !is_array($ids)) {
-            http_response_code(400);
             echo json_encode(['ok' => false]);
             exit;
         }
@@ -99,6 +109,51 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null)) {
             $id = (int) ($_POST['id'] ?? 0);
             $db->prepare('DELETE FROM modules WHERE id = ? AND course_id = ?')->execute([$id, $courseId]);
+        }
+        header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
+        exit;
+
+    case 'duplicate':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCsrf($_POST['_csrf'] ?? null)) {
+            $id = (int) ($_POST['id'] ?? 0);
+            $stmt = $db->prepare('SELECT * FROM modules WHERE id = ? AND course_id = ?');
+            $stmt->execute([$id, $courseId]);
+            $src = $stmt->fetch();
+            if ($src) {
+                $db->prepare('INSERT INTO modules (course_id, title, description_blocks, position) VALUES (?, ?, ?, ?)')
+                    ->execute([$courseId, $src['title'] . ' (copie)', $src['description_blocks'], $src['position']]);
+                $newModuleId = (int) $db->lastInsertId();
+
+                $lessons = $db->prepare('SELECT * FROM lessons WHERE module_id = ? ORDER BY position ASC, id ASC');
+                $lessons->execute([$id]);
+                foreach ($lessons->fetchAll() as $lesson) {
+                    $db->prepare('INSERT INTO lessons (module_id, title, slug, content_type, content, content_blocks, video_url, position, duration_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                        ->execute([$newModuleId, $lesson['title'], $lesson['slug'] . '-copie-' . $newModuleId, $lesson['content_type'], $lesson['content'], $lesson['content_blocks'], $lesson['video_url'], $lesson['position'], $lesson['duration_minutes']]);
+                }
+
+                $quizzes = $db->prepare('SELECT * FROM quizzes WHERE module_id = ? ORDER BY position ASC, id ASC');
+                $quizzes->execute([$id]);
+                foreach ($quizzes->fetchAll() as $quiz) {
+                    $db->prepare('INSERT INTO quizzes (module_id, title, pass_score, max_attempts, position) VALUES (?, ?, ?, ?, ?)')
+                        ->execute([$newModuleId, $quiz['title'], $quiz['pass_score'], $quiz['max_attempts'], $quiz['position']]);
+                    $newQuizId = (int) $db->lastInsertId();
+
+                    $questions = $db->prepare('SELECT * FROM quiz_questions WHERE quiz_id = ? ORDER BY position ASC, id ASC');
+                    $questions->execute([$quiz['id']]);
+                    foreach ($questions->fetchAll() as $question) {
+                        $db->prepare('INSERT INTO quiz_questions (quiz_id, question, type, position) VALUES (?, ?, ?, ?)')
+                            ->execute([$newQuizId, $question['question'], $question['type'], $question['position']]);
+                        $newQuestionId = (int) $db->lastInsertId();
+
+                        $answers = $db->prepare('SELECT * FROM quiz_answers WHERE question_id = ? ORDER BY position ASC, id ASC');
+                        $answers->execute([$question['id']]);
+                        foreach ($answers->fetchAll() as $answer) {
+                            $db->prepare('INSERT INTO quiz_answers (question_id, answer, is_correct, position) VALUES (?, ?, ?, ?)')
+                                ->execute([$newQuestionId, $answer['answer'], $answer['is_correct'], $answer['position']]);
+                        }
+                    }
+                }
+            }
         }
         header('Location: ' . adminUrl('courses', ['action' => 'edit', 'id' => $courseId]));
         exit;
