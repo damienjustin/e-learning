@@ -79,7 +79,7 @@ switch ($action) {
         $accessUsers = [];
         $allGroups = [];
         if ($course['id']) {
-            $stmt = $db->prepare('SELECT ca.id AS access_id, g.name FROM course_access ca JOIN groups g ON g.id = ca.group_id WHERE ca.course_id = ?');
+            $stmt = $db->prepare('SELECT ca.id AS access_id, g.name FROM course_access ca JOIN member_groups g ON g.id = ca.group_id WHERE ca.course_id = ?');
             $stmt->execute([$course['id']]);
             $accessGroups = $stmt->fetchAll();
 
@@ -87,7 +87,7 @@ switch ($action) {
             $stmt->execute([$course['id']]);
             $accessUsers = $stmt->fetchAll();
 
-            $allGroups = $db->query('SELECT * FROM groups ORDER BY name ASC')->fetchAll();
+            $allGroups = $db->query('SELECT * FROM member_groups ORDER BY name ASC')->fetchAll();
         }
 
         render('courses_form', ['course' => $course, 'errors' => $errors, 'modules' => $modules, 'accessGroups' => $accessGroups, 'accessUsers' => $accessUsers, 'allGroups' => $allGroups]);
