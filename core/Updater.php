@@ -38,6 +38,10 @@ final class Updater
         $error = curl_error($ch);
         curl_close($ch);
 
+        if ($httpCode === 404) {
+            throw new RuntimeException('Aucune version publiée pour le moment sur le dépôt GitHub.');
+        }
+
         if ($response === false || $httpCode !== 200) {
             throw new RuntimeException('Impossible de contacter GitHub : ' . ($error ?: "HTTP {$httpCode}"));
         }
