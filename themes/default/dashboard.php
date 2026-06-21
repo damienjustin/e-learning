@@ -5,7 +5,7 @@
     <?php foreach ($enrollments as $course): ?>
         <article class="card">
             <h3><a href="/course/<?= Security::e($course['slug']) ?>"><?= Security::e($course['title']) ?></a></h3>
-            <p><?= $course['completed_at'] ? 'Terminé' : 'En cours' ?></p>
+            <p><span class="status-pill <?= $course['completed_at'] ? 'status-done' : 'status-progress' ?>"><?= $course['completed_at'] ? '✅ Terminé' : '📖 En cours' ?></span></p>
         </article>
     <?php endforeach; ?>
     <?php if (!$enrollments): ?>
