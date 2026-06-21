@@ -16,17 +16,17 @@ $appName = Config::get('app')['name'] ?? 'Bloomin LMS';
     <aside class="admin-sidebar">
         <div class="admin-brand"><?= Security::e($appName) ?></div>
         <nav>
-            <a href="<?= adminUrl('dashboard') ?>" class="<?= $page === 'dashboard' ? 'active' : '' ?>">Tableau de bord</a>
-            <a href="<?= adminUrl('courses') ?>" class="<?= $page === 'courses' ? 'active' : '' ?>">Cours</a>
-            <a href="<?= adminUrl('media') ?>" class="<?= $page === 'media' ? 'active' : '' ?>">Médias</a>
+            <a href="<?= adminUrl('dashboard') ?>" class="<?= $page === 'dashboard' ? 'active' : '' ?>">📊 Tableau de bord</a>
+            <a href="<?= adminUrl('courses') ?>" class="<?= $page === 'courses' ? 'active' : '' ?>">🎓 Cours</a>
+            <a href="<?= adminUrl('media') ?>" class="<?= $page === 'media' ? 'active' : '' ?>">🖼️ Médias</a>
             <?php if (Auth::hasRole('admin')): ?>
-                <a href="<?= adminUrl('users') ?>" class="<?= $page === 'users' ? 'active' : '' ?>">Utilisateurs</a>
-                <a href="<?= adminUrl('groups') ?>" class="<?= $page === 'groups' ? 'active' : '' ?>">Groupes</a>
-                <a href="<?= adminUrl('settings') ?>" class="<?= $page === 'settings' ? 'active' : '' ?>">Réglages</a>
-                <a href="<?= adminUrl('updates') ?>" class="<?= $page === 'updates' ? 'active' : '' ?>">Mises à jour</a>
+                <a href="<?= adminUrl('users') ?>" class="<?= $page === 'users' ? 'active' : '' ?>">👤 Utilisateurs</a>
+                <a href="<?= adminUrl('groups') ?>" class="<?= $page === 'groups' ? 'active' : '' ?>">👥 Groupes</a>
+                <a href="<?= adminUrl('settings') ?>" class="<?= $page === 'settings' ? 'active' : '' ?>">⚙️ Réglages</a>
+                <a href="<?= adminUrl('updates') ?>" class="<?= $page === 'updates' ? 'active' : '' ?>">⬆️ Mises à jour</a>
             <?php endif; ?>
-            <a href="/">Voir le site</a>
-            <a href="/logout">Déconnexion</a>
+            <a href="/">🌐 Voir le site</a>
+            <a href="/logout">🚪 Déconnexion</a>
         </nav>
         <div class="admin-credit">
             &copy; <?= date('Y') ?> <a href="https://bloomin.agency" target="_blank" rel="noopener">Bloomin LMS</a>
