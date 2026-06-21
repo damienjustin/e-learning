@@ -29,10 +29,13 @@ if ($course['visibility'] === 'restricted' && !$isOwnerOrAdmin) {
 }
 
 $enrolled = false;
+$certificateReady = false;
 if (Auth::check()) {
-    $stmt = $db->prepare('SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?');
+    $stmt = $db->prepare('SELECT completed_at FROM enrollments WHERE user_id = ? AND course_id = ?');
     $stmt->execute([Auth::id(), $course['id']]);
-    $enrolled = (bool) $stmt->fetch();
+    $enrollment = $stmt->fetch();
+    $enrolled = (bool) $enrollment;
+    $certificateReady = $enrolled && $course['certificate_enabled'] && $enrollment['completed_at'];
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'enroll') {
         if (!Security::verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -65,4 +68,5 @@ View::render('course_show', [
     'course' => $course,
     'modules' => $modules,
     'enrolled' => $enrolled,
+    'certificateReady' => $certificateReady,
 ]);

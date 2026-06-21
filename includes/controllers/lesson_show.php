@@ -40,6 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'compl
     }
     $db->prepare('INSERT IGNORE INTO lesson_progress (user_id, lesson_id) VALUES (?, ?)')
         ->execute([Auth::id(), $lesson['id']]);
+
+    $stmt = $db->prepare('SELECT COUNT(*) FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = ?');
+    $stmt->execute([$course['id']]);
+    $totalLessons = (int) $stmt->fetchColumn();
+
+    $stmt = $db->prepare('SELECT COUNT(*) FROM lesson_progress lp
+        JOIN lessons l ON l.id = lp.lesson_id
+        JOIN modules m ON m.id = l.module_id
+        WHERE m.course_id = ? AND lp.user_id = ?');
+    $stmt->execute([$course['id'], Auth::id()]);
+    $completedLessons = (int) $stmt->fetchColumn();
+
+    if ($totalLessons > 0 && $completedLessons >= $totalLessons) {
+        $db->prepare('UPDATE enrollments SET completed_at = NOW() WHERE user_id = ? AND course_id = ? AND completed_at IS NULL')
+            ->execute([Auth::id(), $course['id']]);
+    }
 }
 
 $stmt = $db->prepare('SELECT lesson_id FROM lesson_progress WHERE user_id = ? AND lesson_id = ?');
