@@ -62,6 +62,14 @@ switch ($segments[0]) {
         require CMS_ROOT . '/includes/controllers/lesson_show.php';
         exit;
 
+    case 'certificate':
+        if (!isset($segments[1])) {
+            notFound();
+        }
+        $_GET['course_slug'] = $segments[1];
+        require CMS_ROOT . '/includes/controllers/certificate_show.php';
+        exit;
+
     case 'quiz':
         if (!isset($segments[1])) {
             notFound();

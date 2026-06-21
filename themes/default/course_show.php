@@ -18,6 +18,10 @@
         <a class="btn" href="/login">Connectez-vous pour vous inscrire</a>
     <?php endif; ?>
 
+    <?php if ($certificateReady): ?>
+        <a class="btn" href="/certificate/<?= Security::e($course['slug']) ?>" target="_blank">Télécharger mon certificat</a>
+    <?php endif; ?>
+
     <h2>Contenu du cours</h2>
     <?php foreach ($modules as $module): ?>
         <div class="module">
